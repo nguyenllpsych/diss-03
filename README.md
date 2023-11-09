@@ -20,3 +20,7 @@ to relationship quality
 
 - Transition to Parenthood study ([Rholes et al., 2011](https://doi.org/10.1037/a0022802))
 - Yanna Weisberg dissertation ([Weisberg, 2011](https://www.proquest.com/docview/1427860272/DC66D2EE614E411BPQ))
+
+**Reports:**
+
+- Preregistration using simulated data with 10 functions for 10 hypotheses: [Rpubs](https://rpubs.com/nguyenllpsych/diss-03-prereg)
