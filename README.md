@@ -28,3 +28,7 @@ to relationship quality
 - First install the package `install.packages("renv")` if not already present
 - After cloning the repo, activate `{renv}`: `renv::activate()`
 - For future sessions, regularly restore the lockfile to make sure packages are up-to-date with the lock version: `renv::restore()`
+
+**Reports:**
+
+- Preregistration using simulated data with 10 functions for 10 hypotheses: [Rpubs](https://rpubs.com/nguyenllpsych/diss-03-prereg)
