@@ -20,3 +20,11 @@ to relationship quality
 
 - Transition to Parenthood study ([Rholes et al., 2011](https://doi.org/10.1037/a0022802))
 - Yanna Weisberg dissertation ([Weisberg, 2011](https://www.proquest.com/docview/1427860272/DC66D2EE614E411BPQ))
+- The cleaned data files should be stored in `data/` in the project root directory
+- Some script files will have different data requirements
+
+**Environment and Dependencies**: This project uses `{renv}` for package management
+
+- First install the package `install.packages("renv")` if not already present
+- After cloning the repo, activate `{renv}`: `renv::activate()`
+- For future sessions, regularly restore the lockfile to make sure packages are up-to-date with the lock version: `renv::restore()`
