@@ -1,0 +1,461 @@
+---
+title: "Dissertation Study Three Results: Transition to Parenthood"
+author: "Linh Nguyen"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: false
+    code_folding: 'hide'
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r libraries, warning=FALSE, message=FALSE}
+library(here)        # for file directory
+library(tidyr)       # for pivot_wider
+library(rio)         # to load in data
+library(dplyr)       # general wrangling
+library(Hmisc)       # correlation matrix
+library(psych)       # fisher's z transformation
+library(lme4)        # linear mixed model   
+library(lmerTest)    # linear mixed model significance test
+library(lavaan)      # RI-CLPM
+library(semPlot)     # semPaths
+library(kableExtra)  # for styling and scroll_box
+
+# source the helper file
+source("00_helpers.R")
+```
+
+# Meta Data
+
+This is the analytic report for the Transition to Parenthood dataset.
+
+- Online access: This analytic report is published on [RPubs](https://rpubs.com/nguyenllpsych/diss-03-results-ttp).
+- Preregistration document: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-prereg).
+- Descriptives and exploratory data analysis on the Transition to Parenthood analytic dataset: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-descr-ttp).
+
+
+```{r dat}
+# load in data
+data_ttp <- rio::import(paste0(here(), "/data/cleaned_data_ttp.RDS"))
+
+# example data
+head(data_ttp) %>% 
+  knitr::kable(
+    caption = "Example first 6 rows of the Transition to Parenthood dataset"
+  ) %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+# Research Question 1. Evidence of Assortative Mating
+
+## H1. Baseline similarity
+
+#### At baseline, romantic partners are similar in their personality such that their scale scores are significantly and positively correlated
+
+```{r H1, results="asis"}
+var_list <- c(
+  # traits
+  "bfi_e", "bfi_a", "bfi_c", "bfi_n", "bfi_o",
+  
+  # CA
+  "ecr_avoid", "ecr_anx", 
+  "ss_self", "ss_partner", "sp_self", "sp_partner",
+  "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
+  "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
+  "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
+  "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+)
+
+prof_traits_list <- data.frame(
+  bigfive = c("bfi_e", "bfi_a", "bfi_c", "bfi_n", "bfi_o")
+  
+)
+prof_ca_list <- data.frame(
+  conflict = c("con_collab_self", "con_collab_partner", 
+               "con_capit_self", "con_capit_partner",
+               "con_stale_self", "con_stale_partner", 
+               "con_verba_self", "con_verba_partner"),
+  care = c("ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
+           "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner")
+)
+
+# run function for h1
+h1_bivar <- h1_function(var_list = var_list, prof_list = NULL, 
+                        df = data_ttp, time = 0)
+h1_prof_traits <- h1_function(var_list = NULL, prof_list = prof_traits_list,
+                              df = data_ttp[which(data_ttp$time == 0),])
+h1_prof_ca <- h1_function(var_list = NULL, prof_list = prof_ca_list,
+                          df = data_ttp)
+
+# results
+h1_bivar$bivariate %>% 
+  knitr::kable(caption = "Bivariate between-partner correlation") %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+h1_prof_traits$profile %>% 
+  knitr::kable(caption = "Proportion of signficant between-partner profile correlations in traits") %>% 
+  kableExtra::kable_styling()
+
+h1_prof_ca$profile %>% 
+  knitr::kable(caption = "Proportion of signficant between-partner profile correlations in CAs") %>% 
+  kableExtra::kable_styling()
+
+data_ttp <- merge(data_ttp, h1_prof_traits$profile_df, all = TRUE)
+data_ttp <- merge(data_ttp, h1_prof_ca$profile_df, all = TRUE)
+data_ttp <- merge(data_ttp, h1_prof_ca$profile_df, all = TRUE)
+
+summary(data_ttp %>%
+          filter(time == 0) %>%
+          select(starts_with("bigfive"))) %>% 
+  knitr::kable(caption = "Descriptive summary of trait profile correlations at baseline") %>% 
+  kableExtra::kable_styling()
+
+for(timepoint in sort(unique(data_ttp$time))) {
+  summary(data_ttp %>%
+            filter(time == timepoint) %>%
+            select(starts_with(c("conflict", "care")))) %>% 
+    knitr::kable(caption = paste("Descriptive summary of CA profile correlations at time =", timepoint)) %>% 
+    kableExtra::kable_styling() %>%
+    print()
+}
+```
+
+## H2. Difference in correlations
+
+#### At baseline, romantic partners are more similar in their characteristic adaptations than in their personality traits.
+
+```{r H2}
+# run function on simulated data
+h2_function(cor_tab = h1_bivar$bivariate) %>% 
+  arrange(desc(abs(z_stat))) %>%
+  knitr::kable(caption = "Comparisons of bivariate correlations of personality traits vs CAs") %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+## H3. Longitudinal similarity
+
+#### Longitudinally, romantic partners show a similar change trajectory in self-reported personality across the first two years of parenthood such that their slopes are significantly and positively correlated.
+
+```{r H3}
+var_list <- c("ecr_avoid", "ecr_anx",
+              "ss_self", "ss_partner", "sp_self", "sp_partner",
+              "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
+              "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
+              "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
+              "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+)
+
+# run function
+h3_results <- h3_function(var_list = var_list, baseline = 0, df = data_ttp)
+
+# view longitudinal trends
+h3_results$slopes_tab %>% 
+  knitr::kable(caption = "Longitudinal trends in personality variables") %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+# view longitudinal similarity 
+h3_results$cor_tab %>% 
+  knitr::kable(caption = "Bivariate between-partner slope correlations") %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+# store slopes for later analyses in main dataframe
+data_ttp <- merge(data_ttp, h3_results$slope_df, all.x = TRUE)
+```
+
+# Research Question 2. Benefit of Assortative Mating
+
+## H4. Baseline benefit
+
+#### At baseline, partner similarity in self-reported personality is associated with enhanced relationship quality.
+
+```{r H4}
+var_list <- c(
+  # traits
+  "bfi_e", "bfi_a", "bfi_c", "bfi_n", "bfi_o",
+  
+  # CA
+  "ecr_avoid", "ecr_anx", 
+  "ss_self", "ss_partner", "sp_self", "sp_partner",
+  "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
+  "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
+  "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
+  "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+)
+
+prof_list <- c("bigfive", "conflict", "care")
+
+quality_list <- c("das_satis", "das_coh")
+
+# run function
+h4_results <- h4_function(var_list = var_list, 
+                          quality_list = quality_list, 
+                          prof_list = prof_list,
+                          time = 0,
+                          df = data_ttp)
+
+h4_results$interaction_tab %>% 
+  knitr::kable(
+    caption = "Multiple regression results with interaction terms predicting relationship quality"
+  ) %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+h4_results$difference_tab %>% 
+  knitr::kable(
+    caption = "Simple regression results with difference scores predicting relationship quality"
+  ) %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+h4_results$profile_tab %>% 
+  knitr::kable(
+    caption = "Simple regression results with profile correlations predicting relationship quality"
+  ) %>% 
+  kableExtra::kable_styling()
+```
+
+## H5. Baseline benefit with longitudinal predictors
+
+#### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with enhanced relationship quality at baseline.
+
+```{r H5}
+var_list <- c(
+  "ecr_avoid", "ecr_anx", 
+  "ss_self", "ss_partner", "sp_self", "sp_partner",
+  "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
+  "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
+  "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
+  "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+)
+
+quality_list <- c("das_satis", "das_coh")
+
+# run function
+h5_results <- h5_function(var_list = var_list, 
+                          quality_list = quality_list, 
+                          time = 0,
+                          df = data_ttp) 
+h5_results$interaction_tab %>% 
+  knitr::kable(
+    caption = "Longitudinal predictors: Multiple regression results with interaction terms of predicting relationship quality"
+  ) %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+h5_results$difference_tab %>% 
+  knitr::kable(
+    caption = "Longitudinal predictors: Simple regression results with difference-slope scores predicting relationship quality"
+  ) %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+## H6. Longitudinal benefit
+
+#### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with an increase in relationship quality
+
+```{r H6}
+var_list <- c(
+  "ecr_avoid", "ecr_anx", 
+  "ss_self", "ss_partner", "sp_self", "sp_partner",
+  "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
+  "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
+  "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
+  "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+)
+
+quality_list <- c("das_satis", "das_coh")
+
+# run function
+h6_results <- h6_function(var_list = var_list, 
+                          quality_list = quality_list, 
+                          baseline = 0,
+                          df = data_ttp) 
+h6_results$interaction_tab %>% 
+  knitr::kable(
+    caption = "Longitudinal predictors: Multiple regression results with interaction terms predicting longitudinal relationship quality"
+  ) %>% kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+h6_results$difference_tab %>% 
+  knitr::kable(
+    caption = "Longitudinal predictors: Simple regression results with difference scores predicting longitudinal relationship quality"
+  ) %>% kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+## H7. Cross-lagged effects
+
+#### Longitudinally, there may be cross-lagged effects such that partner similarity in personality at each time point is associated with relationship quality at a subsequent time point, and vice versa. This is an exploratory analysis with no hypothesized direction.
+
+![Figure 1. General structure for the random-intercept cross-lagged panel model](Figure_1.jpg)
+
+Many of these models either did not converge or had estimation warnings.
+
+```{r H7, eval = F}
+#TODO: many did not converge or had estimation warnings
+# create a cross-lagged dataset from timepoints 1->5 instead of 0->25
+data_riclpm <- data_ttp %>%
+  mutate(time = case_when(
+    time == 0 ~ 1,
+    time == 7 ~ 2,
+    time == 13 ~ 3, 
+    time == 19 ~ 4,
+    time == 25 ~ 5)
+)
+var_list <- c(
+  "ecr_avoid", "ecr_anx", 
+  "ss_self", "ss_partner", "sp_self", "sp_partner",
+  "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
+  "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
+  "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
+  "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+)
+
+prof_list <- c("conflict", "care")
+
+quality_list <- c("das_satis", "das_coh")
+
+# run function 
+h7_results <- h7_function(var_list = var_list, prof_list = prof_list,
+                          quality_list = quality_list, df = data_riclpm)
+h7_results$fit_df %>%
+  knitr::kable(
+    caption = "Fit statistics for models of univariate personality difference") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+h7_results$est_df %>%
+  knitr::kable(
+    caption = "Standardized solutions for models of univariate personality difference") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+h7_results$fitprof_df %>%
+  knitr::kable(
+    caption = "Fit statistics for models of personality profile correlation") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+h7_results$estprof_df %>%
+  knitr::kable(
+    caption = "Standardized solutions for models of personality profile correlation") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+
+# Research Question 3. Actor/Partner/Perceived/Similarity
+
+## H8. Actor/partner effect on quality
+
+#### At baseline, self-reported characteristic adaptations are most strongly associated with self-reported relationship quality, more so than the effect of partner-reported and similarity on these variables.
+
+![Figure 2. General structure for the actor-partner interdependence model at baseline - Actual similarity](Figure_2.jpg)
+
+```{r H8}
+var_list <- c(
+  # traits
+  "bfi_e", "bfi_a", "bfi_c", "bfi_n", "bfi_o",
+  
+  # CA
+  "ecr_avoid", "ecr_anx", 
+  "ss_self", "ss_partner", "sp_self", "sp_partner",
+  "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
+  "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
+  "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
+  "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+)
+
+quality_list <- c("das_satis", "das_coh")
+
+# run function
+h8_results <- h8_function(var_list = var_list,
+                          quality_list = quality_list,
+                          time = 0, df = data_ttp)
+h8_results %>%
+  knitr::kable(
+    caption = "Standardized solutions for APIM models with actual similarity"
+  ) %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+
+## H9. Perceived/actual similarity comparison 
+
+#### At baseline, perceived similarity in personality traits and characteristic adaptations is stronger than actual similarity. That is, the correlation between each partner’s self-perception and perception of their partner is stronger than the correlation between two partners’ self-perceptions.
+
+```{r h9}
+perception_list <- c(
+  "ss", "sp",
+  "ks_prox", "ks_sens",
+  "ks_coop", "ks_comp",
+  "con_collab", "con_capit",
+  "con_stale", "con_verba"
+)
+
+# run function
+h9_results <- h9_function(perception_list = perception_list,
+                          time = 0, df = data_ttp)
+
+h9_results$similarity_df %>%
+  knitr::kable(
+    caption = "Actual and perceived similarities as bivariate correlations") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+h9_results$compare_df %>%
+  knitr::kable(
+    caption = "Comparison between actual and perceived similarities") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+## H10. Perceived/actual similarity effects
+
+#### At baseline, each partner’s perceived similarity is more strongly associated with self-reported relationship quality than actual similarity is.
+
+![Figure 3. General structure for the actor-partner interdependence model at baseline - Perceived similarity](Figure_3.jpg)
+
+```{r h10}
+perception_list <- c(
+  "ss", "sp",
+  "ks_prox", "ks_sens",
+  "ks_coop", "ks_comp",
+  "con_collab", "con_capit",
+  "con_stale", "con_verba"
+)
+
+quality_list <- c("das_satis", "das_coh")
+
+# run function
+h10_results <- h10_function(perception_list = perception_list,
+                            quality_list = quality_list,
+                            time = 0, df = data_ttp)
+
+h10_results$est_df_p1 %>%
+  knitr::kable(
+    caption = "Standardized solutions for APIM models with female-perceived similarity"
+  ) %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+h10_results$est_df_p2 %>%
+  knitr::kable(
+    caption = "Standardized solutions for APIM models with male-perceived similarity"
+  ) %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+
+
+

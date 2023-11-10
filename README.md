@@ -18,8 +18,8 @@ to relationship quality
 
 **Data Sources:**
 
-- Transition to Parenthood study ([Rholes et al., 2011](https://doi.org/10.1037/a0022802))
 - Yanna Weisberg dissertation ([Weisberg, 2011](https://www.proquest.com/docview/1427860272/DC66D2EE614E411BPQ))
+- Transition to Parenthood study ([Rholes et al., 2011](https://doi.org/10.1037/a0022802))
 - The cleaned data files should be stored in `data/` in the project root directory
 - Some script files will have different data requirements
 
@@ -31,4 +31,5 @@ to relationship quality
 
 **Reports:**
 
-- Preregistration using simulated data with 10 functions for 10 hypotheses: [Rpubs](https://rpubs.com/nguyenllpsych/diss-03-prereg)
+- Preregistration using simulated data with 10 functions for 10 hypotheses: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-prereg)
+- Exploratory data analyses on study two - Transition to Parenthood: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-descr-ttp)
