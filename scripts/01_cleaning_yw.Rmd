@@ -319,13 +319,10 @@ prqc <- data.frame(
 
 # scale scores
 prqc <- prqc %>%
-  mutate(subscale = case_when(
-    grepl("_1$|_7$|_13$", var_new) ~ "satisfaction",
-    grepl("_2$|_8$|_14$", var_new) ~ "commitment",
-    grepl("_3$|_9$|_15$", var_new) ~ "intimacy",
-    grepl("_4$|_10$|_16$", var_new) ~ "trust",
-    grepl("_5$|_11$|_17$", var_new) ~ "passion",
-    grepl("_6$|_12$|_18$", var_new) ~ "love"))
+  mutate(subscale = rep(
+    c("satisfaction", "commitment", "intimacy",
+      "trust", "passion", "love"), each = 3)
+)
 
 prqc %>%
   knitr::kable(
@@ -482,6 +479,17 @@ assign(x = "trust_scale", value = rowMeans(trust_df_w3, na.rm = T))
 dat_w3["trust"] <- trust_scale
 
 # PRQC -------------------------------------------------------------------------
+# general quality
+prqc_df <- dat_w1[, names(dat_w1) %in% prqc$var_new]
+assign(x = "prqc_overall", value = rowMeans(prqc_df, na.rm = T))
+dat_w1["prqc_overall"] <- get("prqc_overall")
+prqc_df_w2 <- dat_w2[, names(dat_w2) %in% prqc$var_new]
+assign(x = "prqc_overall_w2", value = rowMeans(prqc_df_w2, na.rm = T))
+dat_w2["prqc_overall"] <- get("prqc_overall_w2")
+prqc_df_w3 <- dat_w3[, names(dat_w3) %in% prqc$var_new]
+assign(x = "prqc_overall_w3", value = rowMeans(prqc_df_w3, na.rm = T))
+dat_w3["prqc_overall"] <- get("prqc_overall_w3")
+
 for (var in unique(prqc$subscale)) {
   
   # pull out item variables
@@ -507,17 +515,17 @@ To conform to the data structure required for the analytic scripts, the data wil
 dat_w1 <- dat_w1 %>%
   select(all_of(c(basics$var_new, bfas_self$subscale, 
                   paste0(bfas_partner$subscale, "_partner"),
-                  aaq$subscale, "resp", "trust", 
+                  aaq$subscale, "resp", "trust", "prqc_overall",
                   paste0("prqc_", prqc$subscale))))
 dat_w2 <- dat_w2 %>%
 select(all_of(c(basics$var_new[1], bfas_self$subscale, 
                   paste0(bfas_partner$subscale, "_partner"),
-                  aaq$subscale, "resp", "trust", 
+                  aaq$subscale, "resp", "trust", "prqc_overall",
                   paste0("prqc_", prqc$subscale))))
 dat_w3 <- dat_w3 %>%
 select(all_of(c(basics$var_new[1], bfas_self$subscale, 
                   paste0(bfas_partner$subscale, "_partner"),
-                  aaq$subscale, "resp", "trust", 
+                  aaq$subscale, "resp", "trust", "prqc_overall",
                   paste0("prqc_", prqc$subscale))))
 
 # merge in demographics
@@ -585,8 +593,8 @@ dat_analytic <- dat_long %>%
               values_from = names(dat_long)[!names(dat_long) %in% c("couple", "sex", "time")])
 
 # save data file
-#rio::export(dat_analytic, 
-#            paste0(here(), "/data/cleaned_data_yw.RDS"))
+rio::export(dat_analytic, 
+            paste0(here(), "/data/cleaned_data_yw.RDS"))
 
 ```
 
@@ -626,3 +634,4 @@ dat_w3 %>%
   scroll_box(height = "300px")
 ```
 
+There are a total of `r length(unique(dat_w1$couple))` at time 1, `r length(unique(dat_w2$couple))` at time 2, and `r length(unique(dat_w3$couple))` at time 3.
