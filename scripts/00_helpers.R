@@ -59,8 +59,8 @@ h1_function <- function(
   ### FOR ALL WAVES ###
   
   # extract number of timepoints
-  time_list <- unique(df$time)
-  
+  time_list <- sort(unique(df$time))
+
   # initialize profile cor table
   prof_tab <- data.frame()
   
@@ -68,7 +68,7 @@ h1_function <- function(
   full_profile_df <- data.frame(
     couple = 1:(nrow(df)/length(unique(df$time)))
   )
-  
+
   # iterate through profile list
   for(profile in names(prof_list)) {
     
