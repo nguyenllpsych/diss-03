@@ -537,23 +537,40 @@ dat_w3 <- dat_w3 %>%
 # add time variable
 dat_w1 <- dat_w1 %>%
   mutate(time = 0) %>%
-  relocate(time)
-dat_w2 <- dat_w2 %>%
-  mutate(time = 8) %>%
-  relocate(time)
-dat_w3 <- dat_w3 %>%
-  mutate(time = 16) %>%
-  relocate(time)
-
-# long datasets of all time points
-dat_long <- rbind(dat_w1, dat_w2, dat_w3) %>%
-  select(-ID) %>%
+  relocate(time) %>%
   # only keep non-missing sex
   # only removing 2 cases who also have entirely missing data
   filter(!is.na(sex)) %>%
-  # filter out same-gender couples
-  filter(!couple %in% c(4968, 4991, 5000, 5013))
+  # filter out same-gender couples and missing-gender couples
+  filter(!couple %in% c(4951, 4968, 4991, 5000, 5013))
+dat_w2 <- dat_w2 %>%
+  mutate(time = 8) %>%
+  relocate(time) %>%
+  # only keep non-missing sex
+  # only removing 2 cases who also have entirely missing data
+  filter(!is.na(sex)) %>%
+  # filter out same-gender couples and missing-gender couples
+  filter(!couple %in% c(4951, 4968, 4991, 5000, 5013))
+dat_w3 <- dat_w3 %>%
+  mutate(time = 16) %>%
+  relocate(time) %>%
+  # only keep non-missing sex
+  # only removing 2 cases who also have entirely missing data
+  filter(!is.na(sex)) %>%
+  # filter out same-gender couples and missing-gender couples
+  filter(!couple %in% c(4951, 4968, 4991, 5000, 5013))
 
+# long datasets of all time points
+dat_long <- rbind(dat_w1, dat_w2, dat_w3) %>% select(-ID)
+
+# fix couple IDs to range from 0 to 1
+id_df <- data.frame(
+  id_old = sort(unique(dat_w1$couple)),
+  id_new = 1:length(unique(dat_w1$couple))
+)
+for(id in 1:nrow(id_df)) {
+  dat_long$couple[dat_long$couple == id_df$id_old[id]] <- id_df$id_new[id]
+}
 
 # pivot_wider for 1 couple at 1 time per row
 dat_analytic <- dat_long %>%
