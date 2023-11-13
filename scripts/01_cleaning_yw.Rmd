@@ -407,8 +407,8 @@ for(var in unique(bfas_self$subscale)) {
   partner_df <- dat_w1[, names(dat_w1) %in% partner_items]
   
   # create and append scale scores
-  assign(x = var, value = rowMeans(self_df, na.rm = T))
-  dat_w1[var] <- get(var)
+  assign(x = paste0(var, "_self"), value = rowMeans(self_df, na.rm = T))
+  dat_w1[paste0(var, "_self")] <- get(paste0(var, "_self"))
   assign(x = paste0(var, "_partner"), value = rowMeans(partner_df, na.rm = T))
   dat_w1[paste0(var, "_partner")] <- get(paste0(var, "_partner"))
   
@@ -420,10 +420,10 @@ for(var in unique(bfas_self$subscale)) {
   partner_df_w3 <- dat_w3[, names(dat_w3) %in% partner_items]
 
   # create and append scale scores
-  assign(x = var, value = rowMeans(self_df_w2, na.rm = T))
-  dat_w2[var] <- get(var)
-  assign(x = var, value = rowMeans(self_df_w3, na.rm = T))
-  dat_w3[var] <- get(var)
+  assign(x = paste0(var, "_self"), value = rowMeans(self_df_w2, na.rm = T))
+  dat_w2[paste0(var, "_self")] <- get(paste0(var, "_self"))
+  assign(x = paste0(var, "_self"), value = rowMeans(self_df_w3, na.rm = T))
+  dat_w3[paste0(var, "_self")] <- get(paste0(var, "_self"))
   assign(x = paste0(var, "_partner"), value = rowMeans(partner_df_w2, na.rm = T))
   dat_w2[paste0(var, "_partner")] <- get(paste0(var, "_partner"))
   assign(x = paste0(var, "_partner"), value = rowMeans(partner_df_w3, na.rm = T))
@@ -513,20 +513,23 @@ To conform to the data structure required for the analytic scripts, the data wil
 ```{r merge}
 # select only demographics and scale scores
 dat_w1 <- dat_w1 %>%
-  select(all_of(c(basics$var_new, bfas_self$subscale, 
+  select(all_of(c(basics$var_new, 
+                  paste0(bfas_self$subscale, "_self"),
                   paste0(bfas_partner$subscale, "_partner"),
                   aaq$subscale, "resp", "trust", "prqc_overall",
                   paste0("prqc_", prqc$subscale))))
 dat_w2 <- dat_w2 %>%
-select(all_of(c(basics$var_new[1], bfas_self$subscale, 
-                  paste0(bfas_partner$subscale, "_partner"),
-                  aaq$subscale, "resp", "trust", "prqc_overall",
-                  paste0("prqc_", prqc$subscale))))
+select(all_of(c(basics$var_new[1], 
+                paste0(bfas_self$subscale, "_self"),
+                paste0(bfas_partner$subscale, "_partner"),
+                aaq$subscale, "resp", "trust", "prqc_overall",
+                paste0("prqc_", prqc$subscale))))
 dat_w3 <- dat_w3 %>%
-select(all_of(c(basics$var_new[1], bfas_self$subscale, 
-                  paste0(bfas_partner$subscale, "_partner"),
-                  aaq$subscale, "resp", "trust", "prqc_overall",
-                  paste0("prqc_", prqc$subscale))))
+select(all_of(c(basics$var_new[1], 
+                paste0(bfas_self$subscale, "_self"),
+                paste0(bfas_partner$subscale, "_partner"),
+                aaq$subscale, "resp", "trust", "prqc_overall",
+                paste0("prqc_", prqc$subscale))))
 
 # merge in demographics
 dat_w2 <- merge(dat_w1[c(basics$var_new)], dat_w2, all.y = T)
