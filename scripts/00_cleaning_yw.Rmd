@@ -1,0 +1,605 @@
+---
+title: "Dissertation Study Three EDA: Early Dating"
+author: "Linh Nguyen"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    code_folding: 'hide'
+---
+
+# I. Meta-Data
+
+In order to replicate this code file, the following files are needed in the directory `data/yw/` found within the project directory: `50130_20100409.sav`, `50130_2_20100409.sav`, `50130_3_20100409.sav`, and `current and cut participants.xlsx`. R code associated with each code chunk can be viewed and hidden by toggling on `Code` on the top right of each output.
+
+```{r setup, results = 'hide', message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+options(digits = 3)
+
+libraries <- c("here",         # directory access
+               "labelled",     # spss labels
+               "stringr",      # working with strings
+               "tidyr",        # pivot_wider
+               "rio",          # import export
+               "summarytools", # descriptives
+               "ggplot2",      # plots
+               "kableExtra",   # scroll box
+               "forcats",      # fct_reorder for barplot
+               "sjPlot",       # plot_grid
+               "dplyr",        # general wrangling
+               "lmerTest")     # linear mixed models
+
+lapply(libraries, require, character.only = TRUE)
+```
+
+```{r session-info, message = FALSE, warning = FALSE, results = "hold"}
+# list of loaded packages and versions
+si <- devtools::session_info()[[2]]
+rownames(si) <- NULL
+si %>% 
+  select(package, loadedversion, date, source) %>% 
+  
+  #red bold the called packages
+  mutate(package = 
+           cell_spec(package, 
+                     color = ifelse(package %in% libraries, "red", "black"),
+                     bold = ifelse(package %in% libraries, TRUE, FALSE))) %>% 
+  knitr::kable(escape = F, caption = "All loaded packages. 
+               Bolded in red are those loaded explicitly 
+               with <code>library()</code>") %>% 
+  kable_styling() %>% 
+  scroll_box(height = "300px")
+```
+
+## II. Basic Descriptives
+
+```{r data}
+# load in dat files
+dat_w1 <- rio::import(paste0(here(), "/data/yw/50130_20100409.sav"))
+dat_w2 <- rio::import(paste0(here(), "/data/yw/50130_2_20100409.sav"))
+dat_w3 <- rio::import(paste0(here(), "/data/yw/50130_3_20100409.sav"))
+ids <- rio::import(paste0(here(), "/data/yw/current and cut participants.xlsx")) %>%
+  select(couple = `4`, 
+         ID = `Survey Code`) %>%
+  filter(!is.na(couple) & couple != "XXX") %>%
+  mutate(ID = str_remove(ID, "\r\n")) %>%
+  # save only IDs that appear in dat_w1, dat_w2, or dat_w3
+  filter(ID %in% c(dat_w1$QLogin_1, dat_w2$QLogin_1, dat_w3$QLogin_1))
+
+# fix NA strings
+dat_w1[dat_w1==99999999] <- NA
+dat_w2[dat_w2==99999999] <- NA
+dat_w3[dat_w3==99999999] <- NA
+
+# old sex code: 1 = male 2 = female
+# new sex code: 1 = female 2 = male
+dat_w1$Qd1 <- as.numeric(dat_w1$Qd1 == 2)
+dat_w1$Qd1[dat_w1$Qd1 == 0] <- 2
+
+# age as numeric
+dat_w1$Qd3_1 <- as.numeric(dat_w1$Qd3_1)
+```
+
+### 1. Dictionary: Scale items and labels
+
+```{r var-names}
+# BASIC DEMO AND ID ------------------------------------------------------------
+basics <- data.frame(
+  var_old = names(dat_w1)[grepl("QLogin_1|Qd.*", names(dat_w1))],
+  var_new = c(
+    "ID",
+    "sex",
+    "ethnic_black",
+    "ethnic_asian",
+    "ethnic_white",
+    "ethnic_hisp",
+    "ethnic_other",
+    "ethnic_other_txt",
+    "age",
+    "duration",
+    "rela_status"
+  ),
+  labels = var_label(dat_w1[, grepl("QLogin_1|Qd.*", names(dat_w1))], unlist = T),
+  row.names = NULL
+)
+basics %>%
+  knitr::kable(
+    caption = "Basic identifiers and demographics") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+
+# BFAS -------------------------------------------------------------------------
+
+# bfas variables for self-report wave 1
+bfas_self <- data.frame(
+  var_old = names(dat_w1)[grepl("QBFASnIMP.*_A_", names(dat_w1))],
+  labels = var_label(dat_w1[,grepl("QBFASnIMP.*_A_", names(dat_w1))], unlist = T),
+  row.names = NULL
+) %>%
+  # remove extra things around the questions
+  mutate(labels = str_remove(labels, pattern = " General Question: \\]")) %>%
+  mutate(labels = str_remove(labels, pattern = "You \\[")) %>%
+  mutate(labels = str_remove(labels, pattern = "[^.]*\\.")) %>%
+  mutate(labels = str_remove(labels, pattern = "(\\w+\\s+){1}")) %>%
+  mutate(labels = str_remove_all(labels, pattern = "\\."))
+bfas_self$var_new <- paste0("bfas_", 1:100)
+
+# bfas variables for self-report longitudinal
+bfas_fu <- data.frame(
+  var_old = names(dat_w2)[grepl("QOwnPersBFAS.*_A_", names(dat_w2))],
+  labels = var_label(dat_w2[,grepl("QOwnPersBFAS.*_A_", names(dat_w2))], unlist = T),
+  row.names = NULL
+)
+# add order to use for arranging after merging
+bfas_fu <- bfas_fu %>%
+  mutate(order = 1:nrow(bfas_fu)) %>%
+  # remove extra things around the questions
+  mutate(labels = str_remove(labels, pattern = " General Question: \\]")) %>%
+  mutate(labels = str_remove(labels, pattern = " \\[")) %>%
+  mutate(labels = str_remove(labels, pattern = "[^.]*\\.")) %>%
+  mutate(labels = str_remove(labels, pattern = "(\\w+\\s+){1}")) %>%
+  mutate(labels = str_remove_all(labels, pattern = "\\.")) %>%
+  merge(subset(bfas_self, select = -var_old), all.x = T, all.y = F, by = "labels") %>%
+  arrange(order)
+# fix unmatched questions
+bfas_fu[grepl("beauty in things that others might not notice", bfas_fu$labels), "var_new"] <- "bfas_100"
+bfas_fu[grepl("be bothered with other's needs", bfas_fu$labels), "var_new"] <- "bfas_32"
+bfas_fu[grepl("felt depressed", bfas_fu$labels), "var_new"] <- "bfas_41"
+bfas_fu[grepl("got irritated", bfas_fu$labels), "var_new"] <- "bfas_16"
+bfas_fu[grepl("noticed the emotional aspects of paintings and pictures", bfas_fu$labels), "var_new"] <- "bfas_60"
+bfas_fu[grepl("what I started", bfas_fu$labels), "var_new"] <- "bfas_43"
+bfas_fu <- bfas_fu %>% select(-c(order))
+
+# bfas variables for other-reports
+bfas_partner <- data.frame(
+  var_old = names(dat_w1)[grepl("QPartnerBFAS", names(dat_w1))],
+  var_new = str_replace(bfas_fu$var_new, "_", "_partner_"),
+  labels = str_remove(
+    str_remove(
+      var_label(dat_w1[, grepl("QPartnerBFAS", names(dat_w1))], unlist= T),
+      "General.*"),
+    "[^.]*\\."),
+  row.names = NULL
+)
+
+# double check labels for bfas self and other
+bfas_self$labels <- bfas_fu$labels <- NULL
+bfas_self$labels <- str_remove(
+  str_remove(
+    var_label(dat_w1[,grepl("QBFASnIMP.*_A_", names(dat_w1))], unlist = T),
+    "General.*"),
+  "[^.]*\\.")
+bfas_fu$labels <- str_remove(
+  str_remove(
+    var_label(dat_w2[,grepl("QOwnPersBFAS.*_A_", names(dat_w2))], unlist = T),
+    "General.*"),
+  "[^.]*\\.")
+
+# keys
+bfas_self <- bfas_self %>%
+  mutate(keys = ifelse(grepl(
+    "_1$|_21$|_41$|_71$|_16$|_36$|_56$|_76$|_2$|_32$|_52$|_62$|_82$|\
+    |_17$|_37$|_67$|_77$|_87$|_97$|_13$|_23$|_33$|_53$|_83$|_93$|\
+    |_8$|_48$|_68$|_78$|_14$|_24$|_34$|_54$|_64$|_29$|_49$|_79$|_99$|\
+    |_15$|_45$|_55$|_85$|_50$|_60$|_80$|_90", var_new),
+    -1, 1))
+bfas_fu <- bfas_fu %>%
+  mutate(keys = ifelse(grepl(
+    "_1$|_21$|_41$|_71$|_16$|_36$|_56$|_76$|_2$|_32$|_52$|_62$|_82$|\
+    |_17$|_37$|_67$|_77$|_87$|_97$|_13$|_23$|_33$|_53$|_83$|_93$|\
+    |_8$|_48$|_68$|_78$|_14$|_24$|_34$|_54$|_64$|_29$|_49$|_79$|_99$|\
+    |_15$|_45$|_55$|_85$|_50$|_60$|_80$|_90", var_new),
+    -1, 1))
+bfas_partner <- bfas_partner %>%
+  mutate(keys = ifelse(grepl(
+    "_1$|_21$|_41$|_71$|_16$|_36$|_56$|_76$|_2$|_32$|_52$|_62$|_82$|\
+    |_17$|_37$|_67$|_77$|_87$|_97$|_13$|_23$|_33$|_53$|_83$|_93$|\
+    |_8$|_48$|_68$|_78$|_14$|_24$|_34$|_54$|_64$|_29$|_49$|_79$|_99$|\
+    |_15$|_45$|_55$|_85$|_50$|_60$|_80$|_90", var_new),
+    -1, 1))
+
+# scale scores
+bfas_self <- bfas_self %>%
+  mutate(subscale = case_when(
+    grepl("1$|6$", var_new) ~ "neuroticism",
+    grepl("2$|7$", var_new) ~ "agreeableness",
+    grepl("3$|8$", var_new) ~ "conscientiousness",
+    grepl("4$|9$", var_new) ~ "extraversion",
+    grepl("5$|0$", var_new) ~ "openness"))
+bfas_fu <- bfas_fu %>%
+  mutate(subscale = case_when(
+    grepl("1$|6$", var_new) ~ "neuroticism",
+    grepl("2$|7$", var_new) ~ "agreeableness",
+    grepl("3$|8$", var_new) ~ "conscientiousness",
+    grepl("4$|9$", var_new) ~ "extraversion",
+    grepl("5$|0$", var_new) ~ "openness"))
+bfas_partner <- bfas_partner %>%
+  mutate(subscale = case_when(
+    grepl("1$|6$", var_new) ~ "neuroticism",
+    grepl("2$|7$", var_new) ~ "agreeableness",
+    grepl("3$|8$", var_new) ~ "conscientiousness",
+    grepl("4$|9$", var_new) ~ "extraversion",
+    grepl("5$|0$", var_new) ~ "openness"))
+
+# print dict
+bfas_self %>%
+  knitr::kable(
+    caption = "BFAS labels and item names for self-report at wave 1") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+bfas_fu %>%
+  knitr::kable(
+    caption = "BFAS labels and item names for self-reports at waves 2 and 3") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+bfas_partner %>%
+  knitr::kable(
+    caption = "BFAS labels and item names for partner-reports") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+
+# AAQ --------------------------------------------------------------------------
+# reverse items: 1, 3, 4, 12, 14, 16, 17
+aaq_keys <- rep(1, 17)
+aaq_keys[c(1, 3, 4, 12, 14, 16, 17)] <- -1
+
+aaq <- data.frame(
+  var_old = names(dat_w1)[grepl("QAAQ", names(dat_w1))],
+  var_new = paste0("aaq_", 1:17),
+  keys = aaq_keys,
+  labels = str_remove(
+    str_remove(
+      var_label(dat_w1[,grepl("QAAQ", names(dat_w1))], unlist = T),
+      "General.*"),
+    "[^.]*\\."),
+  row.names = NULL
+)
+
+# scale scores
+# avoidance items: 1-3 and 5-9
+# anxiety items: everything else
+aaq <- aaq %>%
+  mutate(subscale = ifelse(grepl("_1$|_2$|_3$|_5$|_6$|_7$|_8$|_9$", var_new),
+                           "avoidance",
+                           "anxiety"))
+# print dict
+aaq %>%
+  knitr::kable(
+    caption = "AAQ labels and item names") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+
+# Responsiveness ---------------------------------------------------------------
+resp <- data.frame(
+  var_old = names(dat_w1)[grepl("QResponsiveness", names(dat_w1))],
+  var_new = paste0("resp_", 1:18),
+  labels = str_remove(
+    str_remove(
+      var_label(dat_w1[,grepl("QResponsiveness", names(dat_w1))], unlist = T),
+      "General.*"),
+    "[^.]*\\."),
+  row.names = NULL
+)
+resp %>%
+  knitr::kable(
+    caption = "Responsiveness labels and item names") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+
+# Trust ------------------------------------------------------------------------
+trust <- data.frame(
+  var_old = names(dat_w1)[grepl("Qtrust", names(dat_w1))],
+  var_new = paste0("trust_", 1:17),
+  labels = str_remove(
+    str_remove(
+      var_label(dat_w1[,grepl("Qtrust", names(dat_w1))], unlist = T),
+      "General.*"),
+    "[^.]*\\."),
+  row.names = NULL
+)
+trust %>%
+  knitr::kable(
+    caption = "Trust scale labels and item names") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+
+# PRQC -------------------------------------------------------------------------
+prqc <- data.frame(
+  var_old = names(dat_w1)[grepl("QPRQC", names(dat_w1))],
+  var_new = paste0("prqc_", 1:18),
+  labels = str_remove(
+    str_remove(
+      var_label(dat_w1[,grepl("QPRQC", names(dat_w1))], unlist = T),
+      "General.*"),
+    "[^.]*\\."),
+  row.names = NULL
+)
+
+# scale scores
+prqc <- prqc %>%
+  mutate(subscale = case_when(
+    grepl("_1$|_7$|_13$", var_new) ~ "satisfaction",
+    grepl("_2$|_8$|_14$", var_new) ~ "commitment",
+    grepl("_3$|_9$|_15$", var_new) ~ "intimacy",
+    grepl("_4$|_10$|_16$", var_new) ~ "trust",
+    grepl("_5$|_11$|_17$", var_new) ~ "passion",
+    grepl("_6$|_12$|_18$", var_new) ~ "love"))
+
+prqc %>%
+  knitr::kable(
+    caption = "PRQC scale labels and item names") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+
+# RENAMING ---------------------------------------------------------------------
+
+# based on variable names data frames
+# demographics and id
+names(dat_w1)[match(basics$var_old, names(dat_w1))] <- basics$var_new
+names(dat_w2)[match(basics$var_old[1], names(dat_w2))] <- basics$var_new[1]
+names(dat_w3)[match(basics$var_old[1], names(dat_w3))] <- basics$var_new[1]
+
+# bfas self
+names(dat_w1)[match(bfas_self$var_old, names(dat_w1))] <- bfas_self$var_new
+names(dat_w2)[match(bfas_fu$var_old, names(dat_w2))] <- bfas_fu$var_new
+names(dat_w3)[match(bfas_fu$var_old, names(dat_w3))] <- bfas_fu$var_new
+
+# all other scales
+names(dat_w1)[match(bfas_partner$var_old, names(dat_w1))] <- bfas_partner$var_new
+names(dat_w1)[match(aaq$var_old, names(dat_w1))] <- aaq$var_new
+names(dat_w1)[match(resp$var_old, names(dat_w1))] <- resp$var_new
+names(dat_w1)[match(trust$var_old, names(dat_w1))] <- trust$var_new
+names(dat_w1)[match(prqc$var_old, names(dat_w1))] <- prqc$var_new
+names(dat_w2)[match(bfas_partner$var_old, names(dat_w2))] <- bfas_partner$var_new
+names(dat_w2)[match(aaq$var_old, names(dat_w2))] <- aaq$var_new
+names(dat_w2)[match(resp$var_old, names(dat_w2))] <- resp$var_new
+names(dat_w2)[match(trust$var_old, names(dat_w2))] <- trust$var_new
+names(dat_w2)[match(prqc$var_old, names(dat_w2))] <- prqc$var_new
+names(dat_w3)[match(bfas_partner$var_old, names(dat_w3))] <- bfas_partner$var_new
+names(dat_w3)[match(aaq$var_old, names(dat_w3))] <- aaq$var_new
+names(dat_w3)[match(resp$var_old, names(dat_w3))] <- resp$var_new
+names(dat_w3)[match(trust$var_old, names(dat_w3))] <- trust$var_new
+names(dat_w3)[match(prqc$var_old, names(dat_w3))] <- prqc$var_new
+
+# select only relevant variables
+dat_w1 <- dat_w1 %>%
+  select(all_of(c(basics$var_new, bfas_self$var_new, bfas_partner$var_new, 
+                  aaq$var_new, resp$var_new, trust$var_new, prqc$var_new)))
+dat_w2 <- dat_w2 %>%
+  select(all_of(c(basics$var_new[1], bfas_fu$var_new, bfas_partner$var_new, 
+                  aaq$var_new, resp$var_new, trust$var_new, prqc$var_new)))
+dat_w3 <- dat_w3 %>%
+  select(all_of(c(basics$var_new[1], bfas_fu$var_new, bfas_partner$var_new, 
+                  aaq$var_new, resp$var_new, trust$var_new, prqc$var_new)))
+```
+
+
+### 2. Descriptives: Scale scoring and summary statistics
+
+```{r score}
+# reverse scores ---------------------------------------------------------------
+# pull out reversed items for each scale
+reverse_bfas_w1 <- c(
+  bfas_self[bfas_self$keys == -1, "var_new"],
+  bfas_partner[bfas_partner$keys == -1, "var_new"]
+)
+reverse_bfas_fu <- c(
+  bfas_fu[bfas_fu$keys == -1, "var_new"],
+  bfas_partner[bfas_partner$keys == -1, "var_new"]
+)
+reverse_aaq <- aaq[aaq$keys == -1, "var_new"]
+# reverse scores
+dat_w1[, reverse_bfas_w1] <- 6 - dat_w1[, reverse_bfas_w1]
+dat_w2[, reverse_bfas_fu] <- 6 - dat_w2[, reverse_bfas_fu]
+dat_w3[, reverse_bfas_fu] <- 6 - dat_w3[, reverse_bfas_fu]
+dat_w1[, reverse_aaq] <- 8 - dat_w1[, reverse_aaq]
+dat_w2[, reverse_aaq] <- 8 - dat_w2[, reverse_aaq]
+dat_w3[, reverse_aaq] <- 8 - dat_w3[, reverse_aaq]
+
+# BFAS -------------------------------------------------------------------------
+for(var in unique(bfas_self$subscale)) {
+  
+  ### wave 1 ###
+  
+  # pull out item variables
+  self_items <- bfas_self[bfas_self$subscale == var, "var_new"]
+  self_df <- dat_w1[, names(dat_w1) %in% self_items]
+  partner_items <- bfas_partner[bfas_partner$subscale == var, "var_new"]
+  partner_df <- dat_w1[, names(dat_w1) %in% partner_items]
+  
+  # create and append scale scores
+  assign(x = var, value = rowMeans(self_df, na.rm = T))
+  dat_w1[var] <- get(var)
+  assign(x = paste0(var, "_partner"), value = rowMeans(partner_df, na.rm = T))
+  dat_w1[paste0(var, "_partner")] <- get(paste0(var, "_partner"))
+  
+  ### wave 2 and 3 ### 
+  self_items_fu <- bfas_fu[bfas_fu$subscale == var, "var_new"]
+  self_df_w2 <- dat_w2[, names(dat_w2) %in% self_items_fu]
+  self_df_w3 <- dat_w3[, names(dat_w3) %in% self_items_fu]
+  partner_df_w2 <- dat_w2[, names(dat_w2) %in% partner_items]
+  partner_df_w3 <- dat_w3[, names(dat_w3) %in% partner_items]
+
+  # create and append scale scores
+  assign(x = var, value = rowMeans(self_df_w2, na.rm = T))
+  dat_w2[var] <- get(var)
+  assign(x = var, value = rowMeans(self_df_w3, na.rm = T))
+  dat_w3[var] <- get(var)
+  assign(x = paste0(var, "_partner"), value = rowMeans(partner_df_w2, na.rm = T))
+  dat_w2[paste0(var, "_partner")] <- get(paste0(var, "_partner"))
+  assign(x = paste0(var, "_partner"), value = rowMeans(partner_df_w3, na.rm = T))
+  dat_w3[paste0(var, "_partner")] <- get(paste0(var, "_partner"))
+}
+
+# AAQ --------------------------------------------------------------------------
+for (var in unique(aaq$subscale)) {
+  
+  # pull out item variables
+  aaq_items <- aaq[aaq$subscale == var, "var_new"]
+  aaq_df <- dat_w1[, names(dat_w1) %in% aaq_items]
+  aaq_df_w2 <- dat_w2[, names(dat_w2) %in% aaq_items]
+  aaq_df_w3 <- dat_w3[, names(dat_w3) %in% aaq_items]
+  
+  # create and append scale scores
+  assign(x = var, value = rowMeans(aaq_df, na.rm = T))
+  dat_w1[var] <- get(var)
+  assign(x = var, value = rowMeans(aaq_df_w2, na.rm = T))
+  dat_w2[var] <- get(var)
+  assign(x = var, value = rowMeans(aaq_df_w3, na.rm = T))
+  dat_w3[var] <- get(var)
+}
+
+# Responsiveness ---------------------------------------------------------------
+# wave 1
+resp_items <- resp$var_new
+resp_df <- dat_w1[, names(dat_w1) %in% resp_items]
+assign(x = "resp_scale", value = rowMeans(resp_df, na.rm = T))
+dat_w1["resp"] <- resp_scale
+# wave 2
+resp_df_w2 <- dat_w2[, names(dat_w2) %in% resp_items]
+assign(x = "resp_scale", value = rowMeans(resp_df_w2, na.rm = T))
+dat_w2["resp"] <- resp_scale
+# wave 3
+resp_df_w3 <- dat_w3[, names(dat_w3) %in% resp_items]
+assign(x = "resp_scale", value = rowMeans(resp_df_w3, na.rm = T))
+dat_w3["resp"] <- resp_scale
+
+# Trust ------------------------------------------------------------------------
+# wave 1
+trust_items <- trust$var_new
+trust_df <- dat_w1[, names(dat_w1) %in% trust_items]
+assign(x = "trust_scale", value = rowMeans(trust_df, na.rm = T))
+dat_w1["trust"] <- trust_scale
+# wave 2
+trust_df_w2 <- dat_w2[, names(dat_w2) %in% trust_items]
+assign(x = "trust_scale", value = rowMeans(trust_df_w2, na.rm = T))
+dat_w2["trust"] <- trust_scale
+# wave 3
+trust_df_w3 <- dat_w3[, names(dat_w3) %in% trust_items]
+assign(x = "trust_scale", value = rowMeans(trust_df_w3, na.rm = T))
+dat_w3["trust"] <- trust_scale
+
+# PRQC -------------------------------------------------------------------------
+for (var in unique(prqc$subscale)) {
+  
+  # pull out item variables
+  prqc_items <- prqc[prqc$subscale == var, "var_new"]
+  prqc_df <- dat_w1[, names(dat_w1) %in% prqc_items]
+  prqc_df_w2 <- dat_w2[, names(dat_w2) %in% prqc_items]
+  prqc_df_w3 <- dat_w3[, names(dat_w3) %in% prqc_items]
+  
+  # create and append scale scores
+  assign(x = var, value = rowMeans(prqc_df, na.rm = T))
+  dat_w1[var] <- get(var)
+  assign(x = var, value = rowMeans(prqc_df_w2, na.rm = T))
+  dat_w2[var] <- get(var)
+  assign(x = var, value = rowMeans(prqc_df_w3, na.rm = T))
+  dat_w3[var] <- get(var)
+}
+```
+
+To conform to the data structure required for the analytic scripts, the data will be combined into a long dataframe across 3 waves, with `time` denoting the timepoint, then transformed to a wider structure, with each row representing a couple at a specific time point, instead of a participant at a specific time point as the data structure shown here in this descriptive report. The suffix `_1` denotes a female participant, and `_2` denotes a male participant.
+
+```{r merge}
+# select only demographics and scale scores
+dat_w1 <- dat_w1 %>%
+  select(all_of(c(basics$var_new, bfas_self$subscale, bfas_partner$subscale,
+                  aaq$subscale, "resp", "trust", prqc$subscale)))
+dat_w2 <- dat_w2 %>%
+  select(all_of(c(basics$var_new[1], bfas_fu$subscale, bfas_partner$subscale,
+                  aaq$subscale, "resp", "trust", prqc$subscale)))
+dat_w3 <- dat_w3 %>%
+  select(all_of(c(basics$var_new[1], bfas_fu$subscale, bfas_partner$subscale,
+                  aaq$subscale, "resp", "trust", prqc$subscale)))
+
+# merge in demographics
+dat_w2 <- merge(dat_w1[c(basics$var_new)], dat_w2, all.y = T)
+dat_w3 <- merge(dat_w1[c(basics$var_new)], dat_w3, all.y = T)
+
+# merge in couple IDs
+dat_w1 <- merge(ids, dat_w1, all.y = T)
+dat_w2 <- merge(ids, dat_w2, all.y = T)
+dat_w3 <- merge(ids, dat_w3, all.y = T)
+
+# only keep data when both partners are present
+full_ids <- na.omit(dat_w1$couple[duplicated(dat_w1$couple)])
+dat_w1 <- dat_w1 %>%
+  filter(couple %in% full_ids)
+full_ids_w2 <- na.omit(dat_w2$couple[duplicated(dat_w2$couple)])
+dat_w2 <- dat_w2 %>%
+  filter(couple %in% full_ids_w2)
+full_ids_w3 <- na.omit(dat_w3$couple[duplicated(dat_w3$couple)])
+dat_w3 <- dat_w3 %>%
+  filter(couple %in% full_ids_w3)
+
+# add time variable
+dat_w1 <- dat_w1 %>%
+  mutate(time = 0) %>%
+  relocate(time)
+dat_w2 <- dat_w2 %>%
+  mutate(time = 8) %>%
+  relocate(time)
+dat_w3 <- dat_w3 %>%
+  mutate(time = 16) %>%
+  relocate(time)
+
+# long datasets of all time points
+dat_long <- rbind(dat_w1, dat_w2, dat_w3) %>%
+  select(-ID) %>%
+  # only keep non-missing sex
+  # only removing 2 cases who also have entirely missing data
+  filter(!is.na(sex)) %>%
+  # filter out same-gender couples
+  filter(!couple %in% c(4968, 4991, 5000, 5013))
+
+
+# pivot_wider for 1 couple at 1 time per row
+dat_analytic <- dat_long %>%
+  pivot_wider(id_cols = c("couple", "time"),
+              names_from = "sex",
+              values_from = names(dat_long)[!names(dat_long) %in% c("couple", "sex", "time")])
+
+# save data file
+#rio::export(dat_analytic, 
+#            paste0(here(), "/data/cleaned_data_yw.RDS"))
+
+```
+
+```{r descr}
+# demographics
+dat_w1 %>% 
+  select("age", "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp") %>%
+  descr(stats = "common", order = "p") %>%
+  knitr::kable(caption = "Descriptives of demographic variables") %>%
+  kable_styling()
+
+# scale scores wave 1
+dat_w1 %>%
+  select(-c("sex", "age", "time",
+            "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp")) %>%
+  descr(stats = "common", order = "p") %>%
+  knitr::kable(caption = "Descriptives of scale scores at wave 1") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+
+# scale scores wave 2
+dat_w2 %>%
+  select(-c("sex", "age", "time",
+            "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp")) %>%
+  descr(stats = "common", order = "p") %>%
+  knitr::kable(caption = "Descriptives of scale scores at wave 2") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+
+# scale scores wave 3
+dat_w3 %>%
+  select(-c("sex", "age", "time",
+            "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp")) %>%
+  descr(stats = "common", order = "p") %>%
+  knitr::kable(caption = "Descriptives of scale scores at wave 3") %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+```
+

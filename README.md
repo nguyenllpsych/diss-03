@@ -32,4 +32,5 @@ to relationship quality
 **Reports:**
 
 - Preregistration using simulated data with 10 functions for 10 hypotheses: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-prereg)
+- Exploratory data analyses on study one - Early Dating: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-descr-yw)
 - Exploratory data analyses on study two - Transition to Parenthood: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-descr-ttp)
