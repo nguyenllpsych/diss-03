@@ -1,5 +1,5 @@
 ---
-title: "Dissertation Study Three Results: Early Dating"
+title: "Longitudinal Assortative Mating Results: Early Dating"
 author: "Linh Nguyen"
 date: "`r Sys.Date()`"
 output: 
@@ -88,6 +88,10 @@ h1_results$bivariate %>%
   knitr::kable(caption = "Bivariate between-partner correlation") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
+
+h1_results$profile %>% 
+  knitr::kable(caption = "Proportion of signficant between-partner profile correlations in traits") %>% 
+  kableExtra::kable_styling()
 
 data_yw <- merge(data_yw, h1_results$profile_df, all = TRUE)
 

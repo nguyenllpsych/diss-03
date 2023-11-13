@@ -624,7 +624,7 @@ dat_w2 %>%
 
 # scale scores wave 1
 dat_w1 %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 1") %>%
@@ -632,7 +632,7 @@ dat_w1 %>%
   scroll_box(height = "300px")
 dat_w1 %>%
   filter(sex == 1) %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 1 for female participants") %>%
@@ -640,7 +640,7 @@ dat_w1 %>%
   scroll_box(height = "300px")
 dat_w1 %>%
   filter(sex == 2) %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 1 for male participants") %>%
@@ -650,7 +650,7 @@ dat_w1 %>%
 
 # scale scores wave 2
 dat_w2 %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 2") %>%
@@ -658,7 +658,7 @@ dat_w2 %>%
   scroll_box(height = "300px")
 dat_w2 %>%
   filter(sex == 1) %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 2 for female participants") %>%
@@ -666,7 +666,7 @@ dat_w2 %>%
   scroll_box(height = "300px")
 dat_w2 %>%
   filter(sex == 2) %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 2 for male participants") %>%
@@ -676,7 +676,7 @@ dat_w2 %>%
 
 # scale scores wave 3
 dat_w3 %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 3") %>%
@@ -684,7 +684,7 @@ dat_w3 %>%
   scroll_box(height = "300px")
 dat_w3 %>%
   filter(sex == 1) %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 3 for female participants") %>%
@@ -692,7 +692,7 @@ dat_w3 %>%
   scroll_box(height = "300px")
 dat_w3 %>%
   filter(sex == 2) %>%
-  select(-c("sex", "age", "time",
+  select(-c("sex", "age", "time", "rela_status",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 3 for male participants") %>%
