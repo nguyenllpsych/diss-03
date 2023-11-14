@@ -1341,7 +1341,6 @@ h10_function <- function(
   # create dataframes to store results
   #   est_df: standardized solutions from APIM models
   #           separate for p1 and p2's perceptions
-  browser()
   est_df_p1 <- est_df_p2 <- data.frame()
   
   # loop through self/other variables
