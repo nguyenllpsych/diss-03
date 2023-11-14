@@ -54,6 +54,22 @@ head(data_ttp) %>%
   scroll_box(height = "300px")
 ```
 
+# Missingness Analysis
+
+```{r missing, results="asis"}
+miss_analysis(ID = "couple", var = c("ecr_avoid_1", "ecr_avoid_2"), 
+              var_demo = c("P1Aage_1", "P1Aage_2", "P1Arace_1", "P1Arace_2",
+                           "P1Aeducate_1", "P1Aeducate_2",
+                           "P1Aincome_1", "P1Aincome_2",
+                           "P1Altotalmo_1", "P1Altotalmo_2",
+                           "bfi_o_1", "bfi_c_1", "bfi_e_1", "bfi_a_1", "bfi_n_1",
+                           "bfi_o_2", "bfi_c_2", "bfi_e_2", "bfi_a_2", "bfi_n_2"), 
+              var_rela = c("das_satis_1", "das_satis_2",
+                           "das_coh_1", "das_coh_2"), 
+              data = data_ttp)
+```
+
+
 # Research Question 1. Evidence of Assortative Mating
 
 ## H1. Baseline similarity
@@ -396,7 +412,8 @@ h8_results %>%
 
 ```{r h9}
 perception_list <- c(
-  "ss", "sp",
+  #TODO: investigate data error for "ss", identical female self-other perception 
+  "sp",
   "ks_prox", "ks_sens",
   "ks_coop", "ks_comp",
   "con_collab", "con_capit",
@@ -428,7 +445,8 @@ h9_results$compare_df %>%
 
 ```{r h10}
 perception_list <- c(
-  "ss", "sp",
+  #TODO: investigate data error for "ss", identical female self-other perception 
+  "sp",
   "ks_prox", "ks_sens",
   "ks_coop", "ks_comp",
   "con_collab", "con_capit",
@@ -440,7 +458,7 @@ quality_list <- c("das_satis", "das_coh")
 # run function
 h10_results <- h10_function(perception_list = perception_list,
                             quality_list = quality_list,
-                            time = 0, df = data_ttp)
+                            timepoint = 0, df = data_ttp)
 
 h10_results$est_df_p1 %>%
   knitr::kable(

@@ -1,5 +1,5 @@
 ---
-title: "Dissertation Study Three EDA: Transition to Parenthood"
+title: "Longitudinal Assortative Mating EDA: Transition to Parenthood"
 author: "Linh Nguyen"
 date: "`r Sys.Date()`"
 output: 
@@ -14,8 +14,6 @@ output:
 In order to replicate this code file, two files are needed in the directory `data/ttp/` found within the project directory: `TTP Data Request.xlsx` and
 `TTP_Measure Summary.xlsx`. R code associated with each code chunk can be viewed and hidden by toggling on `Code` on the top right of each output.
 
-Future TODO: modularize the plotting functions and republish to RPubs.
-
 ```{r setup, results = 'hide', message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 options(digits = 3)
@@ -24,6 +22,7 @@ libraries <- c("here",         # directory access
                "tidyr",        # pivot_wider
                "rio",          # import export
                "summarytools", # descriptives
+               "ggtext",       # for custom css title
                "ggplot2",      # plots
                "kableExtra",   # scroll box
                "forcats",      # fct_reorder for barplot
@@ -32,6 +31,8 @@ libraries <- c("here",         # directory access
                "lmerTest")     # linear mixed models
 
 lapply(libraries, require, character.only = TRUE)
+
+source("00_helpers.R")
 ```
 
 ```{r session-info, message = FALSE, warning = FALSE, results = "hold"}
@@ -176,6 +177,9 @@ dict %>%
   scroll_box(height = "300px")
 ```
 
+There are a total of `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==0, "couple"]))` couples at time 1, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) &  data_wide$time==7, "couple"]))` couples at time 2, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==13, "couple"]))` couples at time 3, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==19, "couple"]))` couples at time 4, and `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==25, "couple"]))` couples at time 5, using the ECR Avoidance variable to assess missingness.
+
+
 ## Baseline demographics
 
 ```{r demo descr, results = 'asis'}
@@ -187,92 +191,13 @@ data %>%
 
 ```{r demo-plots-cont}
 # age
-ggplot(data = data[which(data$time == 0), ], 
-       aes(P1Aage)) +
-  geom_histogram(binwidth = 1, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "P1Aage"]),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "P1Aage"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1Aage"]), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1Aage"]), 2), "\n",
-                          "    Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1Aage"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1Aage"], na.rm = TRUE), 2)),
-           x = 37, y = 25) + 
-  labs(
-    title = "Distribution of Age",
-    x = "Age (in years)",
-    y = NULL
-  ) +
-  theme_classic()
+plot_hist(var = "P1Aage", var_name = "age in years", data = data, bin_width = 1, 
+          var_sex = "Asex", female_male = c("-1", "1"))
 
-# relationship length (reported by women)
-ggplot(data = data[which(data$time == 0 & data$Asex == "-1"), ], 
-       aes(P1Amtotalmo)) +
-  geom_histogram(binwidth = 5, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), 
-                         "P1Amtotalmo"], na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  annotate("text", 
-             label = paste0("Mean = ", 
-                        round(mean(
-                          data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1Amtotalmo"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                        round(sd(
-                          data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1Amtotalmo"], na.rm = TRUE), 2)),
-           x = 100, y = 10) + 
-  labs(
-    title = "Distribution of Marriage Length",
-    x = "Duration (in months)",
-    y = NULL
-  ) +
-  theme_classic()
-
-data %>%
-  filter(time == 0 & Asex == "-1" & !is.na(P1Amtotalmo)) %>%
-  mutate(name = fct_reorder(ID, P1Amtotalmo)) %>%
-  ggplot(aes(x = name, y = P1Amtotalmo)) +
-    geom_bar(stat = "identity", fill = "#710c0c") +
-    labs(
-      title = "Distribution of Marriage Length",
-      x = element_blank(),
-      y = "Duration (in months)"
-    ) +
-    geom_hline(yintercept = mean(
-      data[which(data$time == 0 & data$Asex == "-1"), "P1Amtotalmo"],
-      na.rm = TRUE),
-      color = "#f1c232", size = 1) +
-    annotate("text", 
-             label = paste0("Mean = ", 
-                        round(mean(
-                          data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1Amtotalmo"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                        round(sd(
-                          data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1Amtotalmo"], na.rm = TRUE), 2)),
-           x = 75, y = 100) + 
-    theme_classic() +
-    theme(axis.text.x = element_blank())
+# relationship length 
+plot_hist(var = "P1Amtotalmo", var_name = "marriage length in months", data = data,
+          bin_width = 1, 
+          var_sex = "Asex", female_male = c("-1", "1"))
 ```
 
 ```{r demo-plots-cat}
@@ -350,23 +275,6 @@ ggplot(data[which(data$time == 0 & !is.na(data$P1Aincome)),],
 
 ## Baseline personality
 
-```{r signif-func, include = F}
-# function to test significance, 2-tailed paired t-test
-# return 0/1 for signif
-signif <- function(var) {
-  pval <- t.test(x = data[which(data$time == 0 & data$Asex == "-1"), 
-                                 var],
-                 y = data[which(data$time == 0 & data$Asex == "1"), 
-                                 var],
-                 paired = TRUE,
-                 alternative = "two.sided",
-                 conf.level = 0.95)$p.value
-  signif <- isTRUE(pval < 0.05)
-  return(signif)
-}
-```
-
-
 ```{r bfi-descr, results = 'asis'}
 data %>%
   filter(time == 0) %>%
@@ -376,213 +284,76 @@ data %>%
 
 ```{r bfi-plots}
 # agreeableness
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(P1AbfiA)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "P1AbfiA"]),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "P1AbfiA"]),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiA"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiA"], na.rm = TRUE), 2), "\n",
-                          "    Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiA"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiA"], na.rm = TRUE), 2)),
-           x = 2.5, y = 45) + 
-  labs(
-    title = "Distribution of Agreeableness",
-    x = "BFI Agreeableness scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "P1AbfiA", var_name = "BFI Agreeableness", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,5)
 
-if(signif("P1AbfiA")) {
+if(signif(var = "P1AbfiA",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # conscientiousness
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(P1AbfiC)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "P1AbfiC"]),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "P1AbfiC"]),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiC"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiC"], na.rm = TRUE), 2), "\n",
-                          "    Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiC"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiC"], na.rm = TRUE), 2)),
-           x = 2, y = 35) + 
-  labs(
-    title = "Distribution of Conscientiousness",
-    x = "BFI Conscientiousness scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "P1AbfiC", var_name = "BFI Conscientiousness", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,5)
 
-if(signif("P1AbfiC")) {
+if(signif(var = "P1AbfiC",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 
 # extraversion
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(P1AbfiE)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "P1AbfiE"]),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "P1AbfiE"]),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiE"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiE"], na.rm = TRUE), 2), "\n",
-                          "    Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiE"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiE"], na.rm = TRUE), 2)),
-           x = 2.2, y = 35) + 
-  labs(
-    title = "Distribution of Extraversion",
-    x = "BFI Extraversion scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "P1AbfiE", var_name = "BFI Extraversion", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,5)
 
-if(signif("P1AbfiE")) {
+if(signif(var = "P1AbfiE",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 
 # neuroticism
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(P1AbfiN)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "P1AbfiN"]),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "P1AbfiN"]),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiN"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiN"], na.rm = TRUE), 2), "\n",
-                          "      Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiN"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiN"], na.rm = TRUE), 2)),
-           x = 4, y = 32) + 
-  labs(
-    title = "Distribution of Neuroticism",
-    x = "BFI Neuroticism scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "P1AbfiN", var_name = "BFI Neuroticism", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,5)
 
-if(signif("P1AbfiN")) {
+if(signif(var = "P1AbfiN",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
-
 
 # openness
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(P1AbfiO)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "P1AbfiO"]),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "P1AbfiO"]),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiO"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "P1AbfiO"], na.rm = TRUE), 2), "\n",
-                          "    Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiO"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "P1AbfiO"], na.rm = TRUE), 2)),
-           x = 1.8, y = 32) + 
-  labs(
-    title = "Distribution of Openness",
-    x = "BFI Openness scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "P1AbfiO", var_name = "BFI Openness", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,5)
 
-if(signif("P1AbfiO")) {
+if(signif(var = "P1AbfiO",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
-
 ```
 
 ## Baseline relationship
@@ -591,83 +362,29 @@ p
 
 ```{r ecr-descr}
 # global avoidance
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(ABAvoid)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "ABAvoid"]),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "ABAvoid"]),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ABAvoid"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ABAvoid"], na.rm = TRUE), 2), "\n",
-                          "      Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ABAvoid"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ABAvoid"], na.rm = TRUE), 2)),
-           x = 5, y = 25) + 
-  labs(
-    title = "Distribution of ECR Global Avoidance",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "ABAvoid", var_name = "ECR Global Avoidance", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("ABAvoid")) {
+if(signif(var = "ABAvoid",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # global anxiety
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(ABAnx)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "ABAnx"]),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "ABAnx"]),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ABAnx"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ABAnx"], na.rm = TRUE), 2), "\n",
-                          "      Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ABAnx"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ABAnx"], na.rm = TRUE), 2)),
-           x = 5, y = 25) + 
-  labs(
-    title = "Distribution of ECR Global Anxiety",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "ABAnx", var_name = "ECR Global Anxiety", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("ABAnx")) {
+if(signif(var = "ABAnx",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
@@ -677,87 +394,29 @@ p
 
 ```{r sss-descr}
 # perceived from partner
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Assp)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Assp"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Assp"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Assp"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Assp"], na.rm = TRUE), 2), "\n",
-                          "    Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Assp"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Assp"], na.rm = TRUE), 2)),
-           x = 4, y = 40) + 
-  labs(
-    title = "Distribution of Sarason's Social Support - Perceived from Partner",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Assp", var_name = "Social Support - Perceived from Partner", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("Assp")) {
+if(signif(var = "Assp",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # self-reported given to partner
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Assind)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Assind"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Assind"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Assind"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Assind"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Assind"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Assind"], na.rm = TRUE), 2)),
-           x = 4, y = 40) + 
-  labs(
-    title = "Distribution of Sarason's Social Support - Self to Partner",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Assind", var_name = "Social Support - Social Support - Self to Partner", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("Assp")) {
+if(signif(var = "Assind",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
@@ -767,87 +426,29 @@ p
 
 ```{r cpp-descr}
 # perceived from partner
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Aspsp)) +
-  geom_histogram(binwidth = 0.1, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Aspsp"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Aspsp"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aspsp"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aspsp"], na.rm = TRUE), 2), "\n",
-                          "    Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aspsp"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aspsp"], na.rm = TRUE), 2)),
-           x = 0, y = 70) + 
-  labs(
-    title = "Distribution of Cutrona's Social Provisions - Perceived from Partner",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Aspsp", var_name = "Social Provisions - Perceived from Partner", 
+               data = data, bin_width = 0.1,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(-1,1)
 
-if(signif("Aspsp")) {
+if(signif(var = "Aspsp",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # self-reported given to partner
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Aisps)) +
-  geom_histogram(binwidth = 0.1, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Aisps"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Aisps"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aisps"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aisps"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aisps"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aisps"], na.rm = TRUE), 2)),
-           x = 0, y = 70) + 
-  labs(
-    title = "Distribution of Cutrona's Social Provisions - Self to Partner",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Aisps", var_name = "Social Provisions - Self to Partner", 
+               data = data, bin_width = 0.1,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(-1,1)
 
-if(signif("Aisps")) {
+if(signif(var = "Aisps",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
@@ -857,347 +458,115 @@ p
 
 ```{r ks-descr}
 # self-reported Proximity v. Distance
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(AiProx)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "AiProx"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "AiProx"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "AiProx"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "AiProx"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "AiProx"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "AiProx"], na.rm = TRUE), 2)),
-           x = 4, y = 40) + 
-  labs(
-    title = "Distribution of Self-Reported Proximity v. Distance",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "AiProx", var_name = "Self-Reported Proximity v. Distance", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)+
   ylim(0,60)
 
-if(signif("AiProx")) {
+if(signif(var = "AiProx",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # perceived-partner Proximity v. Distance
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(ApProx)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "ApProx"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "ApProx"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ApProx"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ApProx"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ApProx"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ApProx"], na.rm = TRUE), 2)),
-           x = 4, y = 40) + 
-  labs(
-    title = "Distribution of Perceived-Partner's Proximity v. Distance",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "ApProx", var_name = "Perceived-Partner's Proximity v. Distance", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)+
   ylim(0,60)
 
-if(signif("ApProx")) {
+if(signif(var = "ApProx",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # self-reported Sensitivity v. Insensitivity
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(AiSens)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "AiSens"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "AiSens"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "AiSens"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "AiSens"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "AiSens"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "AiSens"], na.rm = TRUE), 2)),
-           x = 3, y = 30) + 
-  labs(
-    title = "Distribution of Self-Reported Sensitivity v. Insensitivity",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "AiSens", var_name = "Self-Reported Sensitivity v. Insensitivity", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("AiSens")) {
+if(signif(var = "AiSens",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # perceived-partner Sensitivity v. Insensitivity
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Appsens)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Appsens"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Appsens"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Appsens"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Appsens"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Appsens"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Appsens"], na.rm = TRUE), 2)),
-           x = 3, y = 30) + 
-  labs(
-    title = "Distribution of Perceived-Partner's Sensitivity v. Insensitivity",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Appsens", var_name = "Perceived-Partner's Sensitivity v. Insensitivity", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("Appsens")) {
+if(signif(var = "Appsens",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # self-reported Cooperation v. Control
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(AiCoop)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "AiCoop"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "AiCoop"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "AiCoop"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "AiCoop"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "AiCoop"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "AiCoop"], na.rm = TRUE), 2)),
-           x = 3, y = 30) + 
-  labs(
-    title = "Distribution of Self-Reported Cooperation v. Control",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "AiCoop", var_name = "Self-Reported Cooperation v. Control", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("AiCoop")) {
+if(signif(var = "AiCoop",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # perceived-partner Cooperation v. Control
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(ApCoop)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "ApCoop"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "ApCoop"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ApCoop"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ApCoop"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ApCoop"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ApCoop"], na.rm = TRUE), 2)),
-           x = 3, y = 30) + 
-  labs(
-    title = "Distribution of Perceived-Partner's Cooperation v. Control",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "ApCoop", var_name = "Perceived-Partner's Cooperation v. Control", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("ApCoop")) {
+if(signif(var = "ApCoop",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # self-reported Compulsive Caregiving
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(AiComp)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "AiComp"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "AiComp"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "AiComp"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "AiComp"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "AiComp"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "AiComp"], na.rm = TRUE), 2)),
-           x = 3, y = 30) + 
-  labs(
-    title = "Distribution of Self-Reported Compulsive Caregiving",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "AiComp", var_name = "Self-Reported Compulsive Caregiving", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("AiComp")) {
+if(signif(var = "AiComp",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # perceived-partner Compulsive Caregiving
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(ApComp)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "ApComp"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "ApComp"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ApComp"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "ApComp"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ApComp"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "ApComp"], na.rm = TRUE), 2)),
-           x = 3, y = 30) + 
-  labs(
-    title = "Distribution of Perceived-Partner's Compulsive Caregiving",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "ApComp", var_name = "Perceived-Partner's Compulsive Caregiving", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("ApComp")) {
+if(signif(var = "ApComp",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
@@ -1207,349 +576,117 @@ p
 
 ```{r kcs-descr}
 # self-reported Collaboration
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Aikrcll)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Aikrcll"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Aikrcll"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aikrcll"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aikrcll"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aikrcll"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aikrcll"], na.rm = TRUE), 2)),
-           x = 3, y = 25) + 
-  labs(
-    title = "Distribution of Self-Reported Collaboration",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Aikrcll", var_name = "Self-Reported Collaboration", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)+
   ylim(0,50)
 
-if(signif("Aikrcll")) {
+if(signif(var = "Aikrcll",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # perceived-partner Collaboration
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Apkrcll)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Apkrcll"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Apkrcll"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Apkrcll"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Apkrcll"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Apkrcll"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Apkrcll"], na.rm = TRUE), 2)),
-           x = 3, y = 25) + 
-  labs(
-    title = "Distribution of Perceived-Partner's Collaboration",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Apkrcll", var_name = "Perceived-Partner's Collaboration", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)+
   ylim(0,50)
 
-if(signif("Apkrcll")) {
+if(signif(var = "Apkrcll",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # self-reported Avoidance - Capitulation
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Aikrac)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Aikrac"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Aikrac"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aikrac"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aikrac"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aikrac"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aikrac"], na.rm = TRUE), 2)),
-           x = 4, y = 30) + 
-  labs(
-    title = "Distribution of Self-Reported Avoidance - Capitulation",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Aikrac", var_name = "Self-Reported Avoidance - Capitulation", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("Aikrac")) {
+if(signif(var = "Aikrac",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # perceived-partner Avoidance - Capitulation
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Apkrac)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Apkrac"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Apkrac"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Apkrac"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Apkrac"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Apkrac"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Apkrac"], na.rm = TRUE), 2)),
-           x = 4, y = 30) + 
-  labs(
-    title = "Distribution of Perceived-Partner's Avoidance - Capitulation",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Apkrac", var_name = "Perceived-Partner's Avoidance - Capitulation", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("Apkrac")) {
+if(signif(var = "Apkrac",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # self-reported Stalemate
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Aikrs)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Aikrs"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Aikrs"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aikrs"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aikrs"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aikrs"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aikrs"], na.rm = TRUE), 2)),
-           x = 3, y = 30) + 
-  labs(
-    title = "Distribution of Self-Reported Stalemate",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Aikrs", var_name = "Self-Reported Stalemate", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)+
   ylim(0,50)
 
-if(signif("Aikrs")) {
+if(signif(var = "Aikrs",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # perceived-partner Stalemate
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Apkrs)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Apkrs"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Apkrs"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Apkrs"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Apkrs"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Apkrs"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Apkrs"], na.rm = TRUE), 2)),
-           x = 3, y = 30) + 
-  labs(
-    title = "Distribution of Perceived-Partner's Stalemate",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Apkrs", var_name = "Perceived-Partner's Stalemate", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)+
   ylim(0,50)
 
-if(signif("Apkrs")) {
+if(signif(var = "Apkrs",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # self-reported Verbal Aggression
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Aikrva)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Aikrva"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Aikrva"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aikrva"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Aikrva"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aikrva"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Aikrva"], na.rm = TRUE), 2)),
-           x = 4, y = 30) + 
-  labs(
-    title = "Distribution of Self-Reported Verbal Aggression",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Aikrva", var_name = "Self-Reported Verbal Aggression", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("Aikrva")) {
+if(signif(var = "Aikrva",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # perceived-partner Verbal Aggression
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Apkrva)) +
-  geom_histogram(binwidth = 0.2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Apkrva"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Apkrva"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Apkrva"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Apkrva"], na.rm = TRUE), 2), "\n",
-                          "     Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Apkrva"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Apkrva"], na.rm = TRUE), 2)),
-           x = 4, y = 30) + 
-  labs(
-    title = "Distribution of Perceived-Partner's Verbal Aggression",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Apkrva", var_name = "Perceived-Partner's Verbal Aggression", 
+               data = data, bin_width = 0.2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,7)
 
-if(signif("Apkrva")) {
+if(signif(var = "Apkrva",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
@@ -1559,108 +696,35 @@ p
 
 ```{r das-descr}
 # dyadic satisfaction
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Asatis)) +
-  geom_histogram(binwidth = 2, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Asatis"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Asatis"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Asatis"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                "Asatis"], na.rm = TRUE), 2), "\n",
-                          "         Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Asatis"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Asatis"], na.rm = TRUE), 2)),
-           x = 25, y = 30) + 
-  labs(
-    title = "Distribution of Dyadic Satisfaction",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Asatis", var_name = "Dyadic Satisfaction", 
+               data = data, bin_width = 2,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,50)
 
-if(signif("Asatis")) {
+if(signif(var = "Asatis",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 
 # dyadic cohesion
-p <- ggplot(data = data[which(data$time == 0), ], 
-       aes(Acohes)) +
-  geom_histogram(binwidth = 1, fill = "#710c0c") + 
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "-1"), "Acohes"],
-                    na.rm = TRUE),
-             color = "#f1c232", size = 1) +
-  geom_vline(xintercept = 
-               mean(data[which(data$time == 0 & data$Asex == "1"), "Acohes"],
-                    na.rm = TRUE),
-             color = "#0180D4", size = 1) +
-  annotate("text", 
-           label = paste0("Female Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                 "Acohes"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "-1"), 
-                                "Acohes"], na.rm = TRUE), 2), "\n",
-                          "      Male Mean = ", 
-                          round(mean(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Acohes"], na.rm = TRUE), 2),
-                          ", SD = ",                           
-                          round(sd(
-                            data[which(data$time == 0 & data$Asex == "1"), 
-                                 "Acohes"], na.rm = TRUE), 2)),
-           x = 10, y = 30) + 
-  labs(
-    title = "Distribution of Dyadic Cohesion",
-    x = "Scale score",
-    y = NULL
-  ) +
-  theme_classic() +
+p <- plot_hist(var = "Acohes", var_name = "Dyadic Cohesion", 
+               data = data, bin_width = 1,
+               var_sex = "Asex", female_male = c("-1", "1")) +
   xlim(1,25)
 
-if(signif("Acohes")) {
+if(signif(var = "Acohes",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
   p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
 p
 ```
 
 # III. Longitudinal Descriptives
-
-```{r signifc-func, include = F}
-# function to test significant change, linear mixed model slope
-# return 0/1 for signif
-signifc <- function(var) {
-  formula <- as.formula(paste(var, "~ time", "+ (1 + time | IDg)"))
-  mod <- summary(lmer(formula = formula,
-                      control = lmerControl(optimizer ="Nelder_Mead"),
-                      data = data))
-  
-  signif <- isTRUE(mod$coefficients[2,5] < 0.05)
-  return(signif)
-}
-```
-
 
 For ease of presentation, all longitudinal plots are shown with a random sample of 100 participants.
 
@@ -1685,7 +749,7 @@ p <- ggplot(data = sample,
        y = "Global Avoidance") +
   theme_classic()
 
-if(signifc("ABAvoid")) {
+if(signifc("ABAvoid", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1703,7 +767,7 @@ p <- ggplot(data = sample,
        y = "Global Anxiety") +
   theme_classic()
 
-if(signifc("ABAnx")) {
+if(signifc("ABAnx", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1725,7 +789,7 @@ p <- ggplot(data = sample,
        y = "Perceived social support from partner") +
   theme_classic()
 
-if(signifc("Assp")) {
+if(signifc("Assp", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1743,7 +807,7 @@ p <- ggplot(data = sample,
        y = "Self-reported social support given to partner") +
   theme_classic()
 
-if(signifc("Assind")) {
+if(signifc("Assind", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1765,7 +829,7 @@ p <- ggplot(data = sample,
        y = "Perceived social provisions from partner") +
   theme_classic()
 
-if(signifc("Aspsp")) {
+if(signifc("Aspsp", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1783,7 +847,7 @@ p <- ggplot(data = sample,
        y = "Self-reported social provisions given to partner") +
   theme_classic()
 
-if(signifc("Aisps")) {
+if(signifc("Aisps", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1805,7 +869,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Proximity v. Distance") +
   theme_classic()
 
-if(signifc("AiProx")) {
+if(signifc("AiProx", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1823,7 +887,7 @@ p <- ggplot(data = sample,
        y = "Perceived-partner Proximity v. Distance") +
   theme_classic()
 
-if(signifc("ApProx")) {
+if(signifc("ApProx", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1841,7 +905,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Sensitivity v. Insensitivity") +
   theme_classic()
 
-if(signifc("AiSens")) {
+if(signifc("AiSens", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1859,7 +923,7 @@ p <- ggplot(data = sample,
        y = "Perceived-partner Sensitivity v. Insensitivity") +
   theme_classic()
 
-if(signifc("Appsens")) {
+if(signifc("Appsens", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1877,7 +941,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Cooperation v. Control") +
   theme_classic()
 
-if(signifc("AiCoop")) {
+if(signifc("AiCoop", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1895,7 +959,7 @@ p <- ggplot(data = sample,
        y = "Perceived-partner Cooperation v. Control") +
   theme_classic()
 
-if(signifc("ApCoop")) {
+if(signifc("ApCoop", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1913,7 +977,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Compulsive Caregiving") +
   theme_classic()
 
-if(signifc("AiComp")) {
+if(signifc("AiComp", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1931,7 +995,7 @@ p <- ggplot(data = sample,
        y = "Perceived-partner Compulsive Caregiving") +
   theme_classic()
 
-if(signifc("ApComp")) {
+if(signifc("ApComp", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1953,7 +1017,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Collaboration") +
   theme_classic()
 
-if(signifc("Aikrcll")) {
+if(signifc("Aikrcll", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1971,7 +1035,7 @@ p <- ggplot(data = sample,
        y = "Perceived-partner Collaboration") +
   theme_classic()
 
-if(signifc("Apkrcll")) {
+if(signifc("Apkrcll", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -1989,7 +1053,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Avoidance - Capitulation") +
   theme_classic()
 
-if(signifc("Aikrac")) {
+if(signifc("Aikrac", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -2007,7 +1071,7 @@ p <- ggplot(data = sample,
        y = "Perceived-partner Avoidance - Capitulation") +
   theme_classic()
 
-if(signifc("Apkrac")) {
+if(signifc("Apkrac", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -2025,7 +1089,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Stalemate") +
   theme_classic()
 
-if(signifc("Aikrs")) {
+if(signifc("Aikrs", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -2043,7 +1107,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Stalemate") +
   theme_classic()
 
-if(signifc("Apkrs")) {
+if(signifc("Apkrs", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -2061,7 +1125,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Verbal Aggression") +
   theme_classic()
 
-if(signifc("Aikrva")) {
+if(signifc("Aikrva", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -2079,7 +1143,7 @@ p <- ggplot(data = sample,
        y = "Self-reported Verbal Aggression") +
   theme_classic()
 
-if(signifc("Apkrva")) {
+if(signifc("Apkrva", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -2101,7 +1165,7 @@ p <- ggplot(data = sample,
        y = "Dyadic Satisfaction") +
   theme_classic()
 
-if(signifc("Asatis")) {
+if(signifc("Asatis", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }
@@ -2119,7 +1183,7 @@ p <- ggplot(data = sample,
        y = "Dyadic Cohesion") +
   theme_classic()
 
-if(signifc("Acohes")) {
+if(signifc("Acohes", data = data)) {
   p <- p +
     labs(subtitle = "Significant linear slope (p < .05)")
 }

@@ -1336,11 +1336,12 @@ h10_function <- function(
   quality_list,
   
   # time point (default to baseline) and analytic dataframe
-  time = 1, df) {
+  timepoint = 1, df) {
 
   # create dataframes to store results
   #   est_df: standardized solutions from APIM models
   #           separate for p1 and p2's perceptions
+  browser()
   est_df_p1 <- est_df_p2 <- data.frame()
   
   # loop through self/other variables
@@ -1350,7 +1351,7 @@ h10_function <- function(
     df <- df %>%
       # filter to only include the specified time point
       #   default to 1 for baseline
-      filter(time == time) %>%
+      filter(time == timepoint) %>%
 
       # var_diff_p1: perceived dissimilarity between p1's self-perception 
       #              and p1's perception of p2
@@ -1530,4 +1531,95 @@ h10_function <- function(
 
 # Miscellaneous Functions ------------------------------------------------------
 
+# function to test significance, 2-tailed paired t-test
+# return 0/1 for signif
+signif <- function(var, var_sex, data, time = 0, female_male) {
+  pval <- t.test(x = data[which(data$time == time & data[var_sex] == female_male[1]), 
+                                 var],
+                 y = data[which(data$time == time & data[var_sex] == female_male[2]), 
+                                 var],
+                 paired = TRUE,
+                 alternative = "two.sided",
+                 conf.level = 0.95)$p.value
+  signif <- isTRUE(pval < 0.05)
+  return(signif)
+} # END signif
 
+# function to test significant change, linear mixed model slope
+# return 0/1 for signif
+signifc <- function(var, data) {
+  formula <- as.formula(paste(var, "~ time", "+ (1 + time | IDg)"))
+  mod <- summary(lmer(formula = formula,
+                      control = lmerControl(optimizer ="Nelder_Mead"),
+                      data = data))
+  
+  signif <- isTRUE(mod$coefficients[2,5] < 0.05)
+  return(signif)
+} # END signifc
+
+# function for histogram
+plot_hist <- function(var, var_name, data, time = 0, bin_width,
+                      var_sex, female_male) {
+  # custom colors for female and males
+  colors <- c("#E69F00", "#009E73")
+  names(colors) <- c("female", "male")
+  color_text <- glue::glue(
+    'for <span style = color:{colors["female"]}>**female scores**</span> ',
+    'and ',
+    '<span style = color:{colors["male"]}>**male scores**</span>'
+  )
+  
+  p <- ggplot(data = data[which(data$time == time), ], 
+       aes(!!sym(var))) +
+    geom_histogram(binwidth = bin_width, fill = "#710c0c") + 
+    geom_vline(xintercept = 
+                 mean(data[which(data$time == 0 & data[var_sex] == female_male[1]), var],
+                      na.rm = TRUE),
+               color = colors["female"], size = 1) +
+    geom_vline(xintercept = 
+                 mean(data[which(data$time == 0 & data[var_sex] == female_male[2]), var],
+                      na.rm = TRUE),
+               color = colors["male"], size = 1) +
+    labs(
+      title = paste("Distribution of", var_name, "<br>", color_text),
+      x = var_name,
+      y = NULL
+    ) +
+    theme_classic() +
+    theme(
+      plot.title = element_markdown()
+    )
+  return(p)
+} # END plot_hist
+
+# function for missingness analysis
+miss_analysis <- function(ID, var, var_demo, var_rela, data, baseline = 0){
+  missing <- data.frame(ID = data[ID])
+  missing$missing <- apply(X = select(data, all_of(var)),
+                           MARGIN = 1,
+                           FUN = function(x) as.numeric(any(is.na(x))))
+  missing <- missing %>% 
+    group_by(!!sym(ID)) %>% 
+    filter(missing == max(missing)) %>% 
+    unique()
+  
+  # merge in demographic info
+  demo <- data %>% filter(time == baseline) %>% select(all_of(c(ID, var_demo))) 
+  missing <- merge(missing, demo)
+  
+  # merge in average scores
+  rela <- data %>% filter(time == baseline) %>% select(all_of(c(ID, var_rela)))
+  missing <- merge(missing, rela)      
+  
+  # return
+  for(v in c(var_demo, var_rela)) {
+    summary(
+      glm(formula = paste("missing ~", v), family = "binomial", 
+          data = missing))$coefficients %>%
+      as.data.frame() %>%
+      knitr::kable(
+        caption = paste(v, "predicting missingness")) %>%
+      kable_styling() %>%
+      print()
+  }
+} # END miss_analysis
