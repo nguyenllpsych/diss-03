@@ -12,7 +12,7 @@ output:
 
 # I. Meta-Data
 
-In order to replicate this code file, the following files are needed in the directory `data/yw/` found within the project directory: `50130_20100409.sav`, `50130_2_20100409.sav`, `50130_3_20100409.sav`, and `current and cut participants.xlsx`. R code associated with each code chunk can be viewed and hidden by toggling on `Code` on the top right of each output.
+In order to replicate this code file, the following files are needed in the directory `data/yw/` found within the project directory: `50130_20110214.sav`, `50130_2_20110214.sav`, `50130_2_20110214.sav`, and `Survey Codes.xls`. R code associated with each code chunk can be viewed and hidden by toggling on `Code` on the top right of each output.
 
 ```{r setup, results = 'hide', message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
@@ -25,6 +25,7 @@ libraries <- c("here",         # directory access
                "rio",          # import export
                "summarytools", # descriptives
                "ggplot2",      # plots
+               "ggtext",       # element_markdown
                "kableExtra",   # scroll box
                "forcats",      # fct_reorder for barplot
                "sjPlot",       # plot_grid
@@ -32,6 +33,8 @@ libraries <- c("here",         # directory access
                "lmerTest")     # linear mixed models
 
 lapply(libraries, require, character.only = TRUE)
+
+source("00_helpers.R")
 ```
 
 ```{r session-info, message = FALSE, warning = FALSE, results = "hold"}
@@ -53,25 +56,28 @@ si %>%
   scroll_box(height = "300px")
 ```
 
-# II. Basic Descriptives
+# II. Scale items and Labels
 
 ```{r data}
 # load in dat files
-dat_w1 <- rio::import(paste0(here(), "/data/yw/50130_20100409.sav"))
-dat_w2 <- rio::import(paste0(here(), "/data/yw/50130_2_20100409.sav"))
-dat_w3 <- rio::import(paste0(here(), "/data/yw/50130_3_20100409.sav"))
-ids <- rio::import(paste0(here(), "/data/yw/current and cut participants.xlsx")) %>%
-  select(couple = `4`, 
-         ID = `Survey Code`) %>%
-  filter(!is.na(couple) & couple != "XXX") %>%
-  mutate(ID = str_remove(ID, "\r\n")) %>%
-  # save only IDs that appear in dat_w1, dat_w2, or dat_w3
-  filter(ID %in% c(dat_w1$QLogin_1, dat_w2$QLogin_1, dat_w3$QLogin_1))
+dat_w1 <- rio::import(paste0(here(), "/data/yw/50130_20110214.sav")) %>%
+  mutate(QLogin_1 = tolower(QLogin_1))
+dat_w2 <- rio::import(paste0(here(), "/data/yw/50130_2_20110214.sav")) %>%
+  mutate(Code = tolower(Code))
+dat_w3 <- rio::import(paste0(here(), "/data/yw/50130_3_20110214.sav")) %>%
+  mutate(QLogin_1 = tolower(QLogin_1))
+ids <- rio::import(paste0(here(), "/data/yw/Survey Codes.xls")) %>%
+  rename(couple = `Couple Number`,
+         ID = `Survey Codes`) %>%
+  mutate(ID = tolower(ID))
 
 # fix NA strings
 dat_w1[dat_w1==99999999] <- NA
 dat_w2[dat_w2==99999999] <- NA
 dat_w3[dat_w3==99999999] <- NA
+
+# fix ID name in dat w2 to match with the others
+names(dat_w2)[names(dat_w2) == "Code"] <- "QLogin_1"
 
 # old sex code: 1 = male 2 = female
 # new sex code: 1 = female 2 = male
@@ -95,8 +101,6 @@ dat_w1$Qd4_1 <- str_remove(string = dat_w1$Qd4_1,
                            pattern = "months|approx|not sure")
 dat_w1$Qd4_1 <- as.numeric(dat_w1$Qd4_1)
 ```
-
-## 1. Dictionary: Scale items and labels
 
 ```{r var-names}
 # BASIC DEMO AND ID ------------------------------------------------------------
@@ -387,7 +391,7 @@ dat_w3 <- dat_w3 %>%
 ```
 
 
-## 2. Descriptives: Scale scoring and summary statistics
+# III. Descriptives: Scale scoring and summary statistics
 
 ```{r score}
 # reverse scores ---------------------------------------------------------------
@@ -545,6 +549,10 @@ select(all_of(c(basics$var_new[1],
                 aaq$subscale, "resp", "trust", "prqc_overall",
                 paste0("prqc_", prqc$subscale))))
 
+# fix missing sex
+dat_w1[dat_w1$ID == "9nbmand4",]$sex <- 2
+dat_w1[dat_w1$ID == "kkm56fww",]$sex <- 1
+
 # merge in demographics
 dat_w2 <- merge(dat_w1[c(basics$var_new)], dat_w2, all.y = T)
 dat_w3 <- merge(dat_w1[c(basics$var_new)], dat_w3, all.y = T)
@@ -569,27 +577,18 @@ dat_w3 <- dat_w3 %>%
 dat_w1 <- dat_w1 %>%
   mutate(time = 0) %>%
   relocate(time) %>%
-  # only keep non-missing sex
-  # only removing 2 cases who also have entirely missing data
-  filter(!is.na(sex)) %>%
-  # filter out same-gender couples and missing-gender couples
-  filter(!couple %in% c(4951, 4968, 4991, 5000, 5013))
+  # filter out same-gender couples
+  filter(!couple %in% c(4968, 4991, 5000, 5013, 5068, 5112))
 dat_w2 <- dat_w2 %>%
   mutate(time = 8) %>%
   relocate(time) %>%
-  # only keep non-missing sex
-  # only removing 2 cases who also have entirely missing data
-  filter(!is.na(sex)) %>%
-  # filter out same-gender couples and missing-gender couples
-  filter(!couple %in% c(4951, 4968, 4991, 5000, 5013))
+  # filter out same-gender couples
+  filter(!couple %in% c(4968, 4991, 5000, 5013, 5068, 5112))
 dat_w3 <- dat_w3 %>%
   mutate(time = 16) %>%
   relocate(time) %>%
-  # only keep non-missing sex
-  # only removing 2 cases who also have entirely missing data
-  filter(!is.na(sex)) %>%
-  # filter out same-gender couples and missing-gender couples
-  filter(!couple %in% c(4951, 4968, 4991, 5000, 5013))
+  # filter out same-gender couples
+  filter(!couple %in% c(4968, 4991, 5000, 5013, 5068, 5112))
 
 # long datasets of all time points
 dat_long <- rbind(dat_w1, dat_w2, dat_w3) %>% select(-ID)
@@ -605,15 +604,19 @@ for(id in 1:nrow(id_df)) {
 
 # pivot_wider for 1 couple at 1 time per row
 dat_analytic <- dat_long %>%
+  select(-c(`Participant Number`)) %>%
   pivot_wider(id_cols = c("couple", "time"),
               names_from = "sex",
-              values_from = names(dat_long)[!names(dat_long) %in% c("couple", "sex", "time")])
+              values_from = names(dat_long)
+              [!names(dat_long) %in% c("couple", "sex", "time", "Participant Number")])
 
 # save data file
 #rio::export(dat_analytic, 
 #            paste0(here(), "/data/cleaned_data_yw.RDS"))
 
 ```
+
+## 1. Demographics and Scale Scores
 
 ```{r descr}
 # demographics
@@ -639,6 +642,7 @@ dat_w1 %>%
 # scale scores wave 1
 dat_w1 %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 1") %>%
@@ -647,6 +651,7 @@ dat_w1 %>%
 dat_w1 %>%
   filter(sex == 1) %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 1 for female participants") %>%
@@ -655,6 +660,7 @@ dat_w1 %>%
 dat_w1 %>%
   filter(sex == 2) %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 1 for male participants") %>%
@@ -665,6 +671,7 @@ dat_w1 %>%
 # scale scores wave 2
 dat_w2 %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 2") %>%
@@ -673,6 +680,7 @@ dat_w2 %>%
 dat_w2 %>%
   filter(sex == 1) %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 2 for female participants") %>%
@@ -681,6 +689,7 @@ dat_w2 %>%
 dat_w2 %>%
   filter(sex == 2) %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 2 for male participants") %>%
@@ -691,6 +700,7 @@ dat_w2 %>%
 # scale scores wave 3
 dat_w3 %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 3") %>%
@@ -699,6 +709,7 @@ dat_w3 %>%
 dat_w3 %>%
   filter(sex == 1) %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 3 for female participants") %>%
@@ -707,6 +718,7 @@ dat_w3 %>%
 dat_w3 %>%
   filter(sex == 2) %>%
   select(-c("sex", "age", "time", "rela_status", "duration",
+            "couple", "Participant Number",
             "ethnic_black", "ethnic_asian", "ethnic_white", "ethnic_hisp", "ethnic_other")) %>%
   descr(stats = "common", order = "p") %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 3 for male participants") %>%
@@ -715,7 +727,129 @@ dat_w3 %>%
 
 ```
 
-There are a total of `r length(unique(dat_w1$couple))` at time 1, `r length(unique(dat_w2$couple))` at time 2, and `r length(unique(dat_w3$couple))` at time 3.
+
+There are a total of `r length(unique(dat_w1$couple))` couples at time 1, `r length(unique(dat_w2$couple))` at time 2, and `r length(unique(dat_w3$couple))` at time 3.
+
+## 2. Plots and Gender Comparison
+
+### Big Five Traits
+
+#### Self-Reports
+
+```{r plots-bfasself}
+for(ivar in c("Agreeableness", "Conscientiousness", "Extraversion",
+              "Neuroticism", "Openness")){
+  p <- plot_hist(var = paste0(tolower(ivar), "_self"), 
+                 var_name = paste("BFAS", ivar, "- Self-Reports"), 
+                 data = dat_w1, bin_width = 0.2,
+                 var_sex = "sex", female_male = c("1", "2")) +
+    xlim(1,5)
+
+  if(signif(var = paste0(tolower(ivar), "_self"),
+            var_sex = "sex",
+            data = dat_w1,
+            female_male = c("1", "2"))) {
+    p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
+  }
+  print(p)
+}
+```
+
+#### Partner-Reports
+
+```{r plots-bfaspartner}
+for(ivar in c("Agreeableness", "Conscientiousness", "Extraversion",
+              "Neuroticism", "Openness")){
+  p <- plot_hist(var = paste0(tolower(ivar), "_partner"), 
+                 var_name = paste("BFAS", ivar, "- Partner-Reports"), 
+                 data = dat_w1, bin_width = 0.2,
+                 var_sex = "sex", female_male = c("1", "2")) +
+    xlim(1,5)
+
+  if(signif(var = paste0(tolower(ivar), "_partner"),
+            var_sex = "sex",
+            data = dat_w1,
+            female_male = c("1", "2"))) {
+    p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
+  }
+  print(p)
+}
+```
+
+### Adult Attachment Questionnaire
+
+```{r plots-aaq}
+for(ivar in c("Avoidance", "Anxiety")){
+  p <- plot_hist(var = tolower(ivar), 
+                 var_name = paste("Adult Attachment Questionnaire -", ivar), 
+                 data = dat_w1, bin_width = 0.2,
+                 var_sex = "sex", female_male = c("1", "2")) +
+    xlim(1,7)
+
+  if(signif(var = tolower(ivar),
+            var_sex = "sex",
+            data = dat_w1,
+            female_male = c("1", "2"))) {
+    p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
+  }
+  print(p)
+}
+```
+
+### Responsiveness Scale
+
+```{r plots-resp}
+p <- plot_hist(var = "resp", 
+               var_name = paste("Responsiveness Score"), 
+               data = dat_w1, bin_width = 0.2,
+               var_sex = "sex", female_male = c("1", "2")) +
+  xlim(1,9)
+
+if(signif(var = "resp",
+          var_sex = "sex",
+          data = dat_w1,
+          female_male = c("1", "2"))) {
+  p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
+}
+print(p)
+```
 
 
+### Trust Scale
 
+```{r plots-trust}
+p <- plot_hist(var = "trust", 
+               var_name = paste("Trust Score"), 
+               data = dat_w1, bin_width = 0.2,
+               var_sex = "sex", female_male = c("1", "2")) +
+  xlim(1,7)
+
+if(signif(var = "trust",
+          var_sex = "sex",
+          data = dat_w1,
+          female_male = c("1", "2"))) {
+  p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
+}
+print(p)
+```
+
+### Perceived Relationship Quality Component Scale
+
+```{r plots-prqc}
+for(ivar in paste0(c("Overall", "Satisfaction", "Commitment",
+                     "Intimacy", "Trust", "Passion", "Love"))){
+  p <- plot_hist(var = paste0("prqc_", tolower(ivar)), 
+                 var_name = paste("PRQC Relationship Quality -", ivar), 
+                 data = dat_w1, bin_width = 0.5,
+                 var_sex = "sex", female_male = c("1", "2")) +
+    xlim(1,7)
+
+  if(signif(var = paste0("prqc_", tolower(ivar)), 
+            var_sex = "sex",
+            data = dat_w1,
+            female_male = c("1", "2"))) {
+    p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
+  }
+  print(p)
+}
+```

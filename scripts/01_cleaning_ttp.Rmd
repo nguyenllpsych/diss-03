@@ -11,8 +11,7 @@ output:
 ---
 # I. Meta-data
 
-In order to replicate this code file, two files are needed in the directory `data/ttp/` found within the project directory: `TTP Data Request.xlsx` and
-`TTP_Measure Summary.xlsx`. R code associated with each code chunk can be viewed and hidden by toggling on `Code` on the top right of each output.
+In order to replicate this code file, two files are needed in the directory `data/ttp/` found within the project directory: `TTP Data Request.xlsx`, `TTP_Measure Summary.xlsx`, and `Phase 1 All Items.sav`. R code associated with each code chunk can be viewed and hidden by toggling on `Code` on the top right of each output.
 
 ```{r setup, results = 'hide', message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
@@ -59,6 +58,9 @@ si %>%
 ```{r cleaning, results = 'hide'}
 # data and dictionary
 data <- rio::import(file = paste0(here(), "/data/ttp/TTP Data Request.xlsx"))
+wave_1 <- rio::import(file = paste0(here(), "/data/ttp/Phase 1 All Items.sav")) %>%
+  filter(ID %in% data$ID) %>%
+  mutate(ID = as.character(ID))
 dict <- rio::import(file = paste0(here(), "/data/ttp/TTP_Measure Summary.xlsx"), 
                     sheet = "Scale Specfications") %>% 
   select(c("Measure", "Variable Name", "Scaling")) %>% 
@@ -113,7 +115,7 @@ data <- data %>%
 #   needed for analyses
 data_wide <- data %>%
   # remove unnecessary variables
-  select(-c("IDg", "Ababysex")) %>%
+  select(-c("IDg", "Ababysex", matches("LA"))) %>%
   # rename variables for more readability
   rename(couple = ID,
          ecr_avoid = ABAvoid,
@@ -156,6 +158,23 @@ data_wide <- data_wide %>%
 
 # check that all IDs appear exactly 5 times
 #sum(table(data$couple)!=5)
+
+# impute ss variables for female at wave 1 from raw data
+#   sort wave_1 ID using data_wide$couple to cbind easily
+order_ID <- match(data_wide[data_wide$time==0,]$couple, wave_1$ID)
+wave_1 <- wave_1[order_ID, ]
+#   grab items specific to ss_self_1
+ss_self_1_items <- wave_1 %>%
+  select(names(wave_1)[grepl("^P1Fssind[0-9]+$", names(wave_1))])
+#   grab items specific to ss_partner_2
+ss_partner_1_items <- wave_1 %>%
+  select(names(wave_1)[grepl("^P1Fssp[0-9]+$", names(wave_1))])
+#   store scale scores in data_wide for time 1
+data_wide[data_wide$time == 0,]$ss_self_1 <- rowMeans(ss_self_1_items, na.rm = T)
+data_wide[data_wide$time == 0,]$ss_partner_1 <- rowMeans(ss_partner_1_items, na.rm = T)
+#   store scale scores in data for time 1
+data[data$time == 0 & data$Asex == -1,]$Assind <- rowMeans(ss_self_1_items, na.rm = T)
+data[data$time == 0 & data$Asex == -1,]$Assp <- rowMeans(ss_partner_1_items, na.rm = T)
 
 # fix character ID and standardize 1 -> length
 data_wide <- data_wide %>%
@@ -275,11 +294,16 @@ ggplot(data[which(data$time == 0 & !is.na(data$P1Aincome)),],
 
 ## Baseline personality
 
-```{r bfi-descr, results = 'asis'}
-data %>%
+```{r bfi-descr}
+data_wide %>%
   filter(time == 0) %>%
-  select(P1AbfiE:P1AbfiO) %>%
-  descr(stats = "common")
+  select(bfi_e_1:bfi_o_2) %>%
+  descr(stats = "common") %>%
+  knitr::kable(
+    caption = "Baseline Big Five descriptives for all participants"
+  ) %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
 ```
 
 ```{r bfi-plots}
@@ -357,6 +381,19 @@ p
 ```
 
 ## Baseline relationship
+
+```{r rela-descr}
+data_wide %>%
+  filter(time == 0) %>%
+  select(ecr_avoid_1:con_verba_self_2, das_satis_1:das_coh_2) %>%
+  descr(stats = "common") %>%
+  knitr::kable(
+    caption = "Baseline relationship CAs descriptives for all participants"
+  ) %>%
+  kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
 
 ### Experiences in Close Relationships
 

@@ -48,7 +48,9 @@ This is the analytic report for the Early Dating dataset.
 data_yw <- rio::import(paste0(here(), "/data/cleaned_data_yw.RDS"))
 
 # example data
-head(data_yw) %>% 
+data_yw %>%
+  arrange(couple) %>%
+  head() %>% 
   knitr::kable(
     caption = "Example first 6 rows of the Early Dating dataset"
   ) %>% 

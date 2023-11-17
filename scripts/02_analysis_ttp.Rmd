@@ -412,8 +412,7 @@ h8_results %>%
 
 ```{r h9}
 perception_list <- c(
-  #TODO: investigate data error for "ss", identical female self-other perception 
-  "sp",
+  "ss", "sp",
   "ks_prox", "ks_sens",
   "ks_coop", "ks_comp",
   "con_collab", "con_capit",
@@ -445,8 +444,7 @@ h9_results$compare_df %>%
 
 ```{r h10}
 perception_list <- c(
-  #TODO: investigate data error for "ss", identical female self-other perception 
-  "sp",
+  "ss", "sp",
   "ks_prox", "ks_sens",
   "ks_coop", "ks_comp",
   "con_collab", "con_capit",
