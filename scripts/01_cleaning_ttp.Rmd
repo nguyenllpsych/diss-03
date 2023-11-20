@@ -17,7 +17,8 @@ In order to replicate this code file, two files are needed in the directory `dat
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 options(digits = 3)
 
-libraries <- c("here",         # directory access
+libraries <- c("apaTables",    # for cor table
+               "here",         # directory access
                "tidyr",        # pivot_wider
                "rio",          # import export
                "summarytools", # descriptives
@@ -194,6 +195,43 @@ dict %>%
   knitr::kable(escape = F, caption = "All variables in analytic dataset") %>% 
   kable_styling() %>% 
   scroll_box(height = "300px")
+```
+
+```{r cormat, eval = F, include = F}
+apa.cor.table(data_wide %>% 
+                filter(time == 0) %>%
+                select(
+                  "bfi_a_1", "bfi_c_1", "bfi_e_1", "bfi_n_1", "bfi_o_1",
+                  "ecr_avoid_1", "ecr_anx_1",
+                  "ss_self_1", "ss_partner_1",
+                  "sp_self_1", "sp_partner_1",
+                  "ks_prox_self_1", "ks_prox_partner_1",
+                  "ks_sens_self_1", "ks_sens_partner_1",
+                  "ks_coop_self_1", "ks_coop_partner_1",
+                  "ks_comp_self_1", "ks_comp_partner_1",
+                  "con_collab_self_1", "con_collab_partner_1",
+                  "con_capit_self_1", "con_capit_partner_1",
+                  "con_stale_self_1", "con_stale_partner_1",
+                  "con_verba_self_1", "con_verba_partner_1",
+                  "das_satis_1", "das_coh_1"),
+              filename = paste0(here(), "/data/cormat_female_ttp.doc"))
+apa.cor.table(data_wide %>% 
+                filter(time == 0) %>%
+                select(
+                  "bfi_a_2", "bfi_c_2", "bfi_e_2", "bfi_n_2", "bfi_o_2",
+                  "ecr_avoid_2", "ecr_anx_2",
+                  "ss_self_2", "ss_partner_2",
+                  "sp_self_2", "sp_partner_2",
+                  "ks_prox_self_2", "ks_prox_partner_2",
+                  "ks_sens_self_2", "ks_sens_partner_2",
+                  "ks_coop_self_2", "ks_coop_partner_2",
+                  "ks_comp_self_2", "ks_comp_partner_2",
+                  "con_collab_self_2", "con_collab_partner_2",
+                  "con_capit_self_2", "con_capit_partner_2",
+                  "con_stale_self_2", "con_stale_partner_2",
+                  "con_verba_self_2", "con_verba_partner_2",
+                  "das_satis_2", "das_coh_2"),
+              filename = paste0(here(), "/data/cormat_male_ttp.doc"))
 ```
 
 There are a total of `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==0, "couple"]))` couples at time 1, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) &  data_wide$time==7, "couple"]))` couples at time 2, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==13, "couple"]))` couples at time 3, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==19, "couple"]))` couples at time 4, and `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==25, "couple"]))` couples at time 5, using the ECR Avoidance variable to assess missingness.

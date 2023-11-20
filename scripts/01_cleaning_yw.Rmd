@@ -18,7 +18,8 @@ In order to replicate this code file, the following files are needed in the dire
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 options(digits = 3)
 
-libraries <- c("here",         # directory access
+libraries <- c("apaTables",    # for cor table
+               "here",         # directory access
                "labelled",     # spss labels
                "stringr",      # working with strings
                "tidyr",        # pivot_wider
@@ -724,9 +725,34 @@ dat_w3 %>%
   knitr::kable(caption = "Descriptives of scale scores at wave 3 for male participants") %>%
   kable_styling() %>%
   scroll_box(height = "300px")
-
 ```
 
+```{r cormat, eval = F, include = F}
+apa.cor.table(dat_w1 %>% 
+                filter(sex == 1) %>%
+                select(
+                  "agreeableness_self", "conscientiousness_self",
+                  "extraversion_self", "neuroticism_self", "openness_self",
+                  "agreeableness_partner", "conscientiousness_partner",
+                  "extraversion_partner", "neuroticism_partner", "openness_partner",
+                  "avoidance", "anxiety", "resp", "trust",
+                  "prqc_overall", "prqc_satisfaction", "prqc_commitment",
+                  "prqc_intimacy", "prqc_trust", "prqc_passion", "prqc_love"
+                ),
+              filename = paste0(here(), "/data/cormat_female_yw.doc"))
+apa.cor.table(dat_w1 %>% 
+                filter(sex == 2) %>%
+                select(
+                  "agreeableness_self", "conscientiousness_self",
+                  "extraversion_self", "neuroticism_self", "openness_self",
+                  "agreeableness_partner", "conscientiousness_partner",
+                  "extraversion_partner", "neuroticism_partner", "openness_partner",
+                  "avoidance", "anxiety", "resp", "trust",
+                  "prqc_overall", "prqc_satisfaction", "prqc_commitment",
+                  "prqc_intimacy", "prqc_trust", "prqc_passion", "prqc_love"
+                ),
+              filename = paste0(here(), "/data/cormat_male_yw.doc"))
+```
 
 There are a total of `r length(unique(dat_w1$couple))` couples at time 1, `r length(unique(dat_w2$couple))` at time 2, and `r length(unique(dat_w3$couple))` at time 3.
 
@@ -853,3 +879,5 @@ for(ivar in paste0(c("Overall", "Satisfaction", "Commitment",
   print(p)
 }
 ```
+
+
