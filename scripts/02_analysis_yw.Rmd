@@ -204,12 +204,14 @@ h4_results <- h4_function(var_list = var_list,
                           df = data_yw)
 
 h4_results$interaction_tab %>% 
+  arrange(int_pval) %>%
   knitr::kable(
     caption = "Multiple regression results with interaction terms predicting relationship quality"
   ) %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 h4_results$difference_tab %>% 
+  arrange(diff_pval) %>%
   knitr::kable(
     caption = "Simple regression results with difference scores predicting relationship quality"
   ) %>% 
@@ -247,12 +249,14 @@ h5_results <- h5_function(var_list = var_list,
                           time = 0,
                           df = data_yw) 
 h5_results$interaction_tab %>% 
+  arrange(int_pval) %>%
   knitr::kable(
     caption = "Longitudinal predictors: Multiple regression results with interaction terms of predicting relationship quality"
   ) %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 h5_results$difference_tab %>% 
+  arrange(diff_pval) %>%
   knitr::kable(
     caption = "Longitudinal predictors: Simple regression results with difference-slope scores predicting relationship quality"
   ) %>% 
@@ -285,11 +289,13 @@ h6_results <- h6_function(var_list = var_list,
                           baseline = 0,
                           df = data_yw_full) 
 h6_results$interaction_tab %>% 
+  arrange(int_pval) %>%
   knitr::kable(
     caption = "Longitudinal predictors: Multiple regression results with interaction terms predicting longitudinal relationship quality"
   ) %>% kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 h6_results$difference_tab %>% 
+  arrange(diff_pval) %>%
   knitr::kable(
     caption = "Longitudinal predictors: Simple regression results with difference scores predicting longitudinal relationship quality"
   ) %>% kableExtra::kable_styling() %>%
