@@ -55,3 +55,5 @@ rsconnect/
 *.html
 *.RDS
 *.docx
+*.doc
+*.xls

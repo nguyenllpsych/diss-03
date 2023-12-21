@@ -191,10 +191,7 @@ var_list <- c(
 
 prof_list <- c("bigfive")
 
-quality_list <- c(
-  paste0("prqc_", 
-         c("overall", "satisfaction", "commitment", 
-           "intimacy", "trust", "passion", "love")))
+quality_list <- "prqc_overall"
 
 # run function
 h4_results <- h4_function(var_list = var_list, 
@@ -238,10 +235,7 @@ var_list <- c(
   "avoidance", "anxiety", "resp", "trust"
 )
 
-quality_list <- c(
-  paste0("prqc_", 
-         c("overall", "satisfaction", "commitment", 
-           "intimacy", "trust", "passion", "love")))
+quality_list <- "prqc_overall"
 
 # run function
 h5_results <- h5_function(var_list = var_list, 
@@ -278,10 +272,7 @@ var_list <- c(
   "avoidance", "anxiety", "resp", "trust"
 )
 
-quality_list <- c(
-  paste0("prqc_", 
-         c("overall", "satisfaction", "commitment", 
-           "intimacy", "trust", "passion", "love")))
+quality_list <- "prqc_overall"
 
 # run function
 h6_results <- h6_function(var_list = var_list, 
@@ -330,11 +321,7 @@ var_list <- c(
 
 prof_list <- c("bigfive")
 
-quality_list <- c(
-  paste0("prqc_", 
-         c("overall", "satisfaction", "commitment", 
-           "intimacy", "trust", "passion", "love")))
-
+quality_list <- "prqc_overall"
 # run function 
 h7_results <- h7_function(var_list = var_list, prof_list = prof_list,
                           quality_list = quality_list, df = data_riclpm)
@@ -382,10 +369,7 @@ var_list <- c(
   "avoidance", "anxiety", "resp", "trust"
 )
 
-quality_list <- c(
-  paste0("prqc_", 
-         c("overall", "satisfaction", "commitment", 
-           "intimacy", "trust", "passion", "love")))
+quality_list <- "prqc_overall"
 
 # run function
 h8_results <- h8_function(var_list = var_list,
@@ -404,7 +388,7 @@ h8_results %>%
 
 #### At baseline, perceived similarity in personality traits and characteristic adaptations is stronger than actual similarity. That is, the correlation between each partner’s self-perception and perception of their partner is stronger than the correlation between two partners’ self-perceptions.
 
-```{r h9}
+```{r H9}
 perception_list <- c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness")
 
 # run function
@@ -430,13 +414,10 @@ h9_results$compare_df %>%
 
 ![Figure 3. General structure for the actor-partner interdependence model at baseline - Perceived similarity](Figure_3.jpg)
 
-```{r h10}
+```{r H10}
 perception_list <- c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness")
 
-quality_list <- c(
-  paste0("prqc_", 
-         c("overall", "satisfaction", "commitment", 
-           "intimacy", "trust", "passion", "love")))
+quality_list <- "prqc_overall"
 
 # run function
 h10_results <- h10_function(perception_list = perception_list,

@@ -334,14 +334,14 @@ prqc <- data.frame(
       "General.*"),
     "[^.]*\\."),
   row.names = NULL
-)
+) %>%
+  filter(grepl(pattern = "_1$|_4$|_7$|_10$|_13$|_16$",
+               x = var_new))
 
 # scale scores
 prqc <- prqc %>%
-  mutate(subscale = rep(
-    c("satisfaction", "commitment", "intimacy",
-      "trust", "passion", "love"), each = 3)
-)
+  mutate(subscale = c("satisfaction", "commitment", "intimacy",
+                      "trust", "passion", "love"))
 
 prqc %>%
   knitr::kable(
@@ -508,23 +508,6 @@ dat_w2["prqc_overall"] <- get("prqc_overall_w2")
 prqc_df_w3 <- dat_w3[, names(dat_w3) %in% prqc$var_new]
 assign(x = "prqc_overall_w3", value = rowMeans(prqc_df_w3, na.rm = T))
 dat_w3["prqc_overall"] <- get("prqc_overall_w3")
-
-for (var in unique(prqc$subscale)) {
-  
-  # pull out item variables
-  prqc_items <- prqc[prqc$subscale == var, "var_new"]
-  prqc_df <- dat_w1[, names(dat_w1) %in% prqc_items]
-  prqc_df_w2 <- dat_w2[, names(dat_w2) %in% prqc_items]
-  prqc_df_w3 <- dat_w3[, names(dat_w3) %in% prqc_items]
-  
-  # create and append scale scores
-  assign(x = paste0("prqc_",var), value = rowMeans(prqc_df, na.rm = T))
-  dat_w1[paste0("prqc_",var)] <- get(paste0("prqc_",var))
-  assign(x = paste0("prqc_",var), value = rowMeans(prqc_df_w2, na.rm = T))
-  dat_w2[paste0("prqc_",var)] <- get(paste0("prqc_",var))
-  assign(x = paste0("prqc_",var), value = rowMeans(prqc_df_w3, na.rm = T))
-  dat_w3[paste0("prqc_",var)] <- get(paste0("prqc_",var))
-}
 ```
 
 To conform to the data structure required for the analytic scripts, the data will be combined into a long dataframe across 3 waves, with `time` denoting the timepoint, then transformed to a wider structure, with each row representing a couple at a specific time point, instead of a participant at a specific time point as the data structure shown here in this descriptive report. The suffix `_1` denotes a female participant, and `_2` denotes a male participant.
@@ -535,20 +518,17 @@ dat_w1 <- dat_w1 %>%
   select(all_of(c(basics$var_new, 
                   paste0(bfas_self$subscale, "_self"),
                   paste0(bfas_partner$subscale, "_partner"),
-                  aaq$subscale, "resp", "trust", "prqc_overall",
-                  paste0("prqc_", prqc$subscale))))
+                  aaq$subscale, "resp", "trust", "prqc_overall")))
 dat_w2 <- dat_w2 %>%
 select(all_of(c(basics$var_new[1], 
                 paste0(bfas_self$subscale, "_self"),
                 paste0(bfas_partner$subscale, "_partner"),
-                aaq$subscale, "resp", "trust", "prqc_overall",
-                paste0("prqc_", prqc$subscale))))
+                aaq$subscale, "resp", "trust", "prqc_overall")))
 dat_w3 <- dat_w3 %>%
 select(all_of(c(basics$var_new[1], 
                 paste0(bfas_self$subscale, "_self"),
                 paste0(bfas_partner$subscale, "_partner"),
-                aaq$subscale, "resp", "trust", "prqc_overall",
-                paste0("prqc_", prqc$subscale))))
+                aaq$subscale, "resp", "trust", "prqc_overall")))
 
 # fix missing sex
 dat_w1[dat_w1$ID == "9nbmand4",]$sex <- 2
@@ -614,7 +594,6 @@ dat_analytic <- dat_long %>%
 # save data file
 #rio::export(dat_analytic, 
 #            paste0(here(), "/data/cleaned_data_yw.RDS"))
-
 ```
 
 ## 1. Demographics and Scale Scores
@@ -736,8 +715,7 @@ apa.cor.table(dat_w1 %>%
                   "agreeableness_partner", "conscientiousness_partner",
                   "extraversion_partner", "neuroticism_partner", "openness_partner",
                   "avoidance", "anxiety", "resp", "trust",
-                  "prqc_overall", "prqc_satisfaction", "prqc_commitment",
-                  "prqc_intimacy", "prqc_trust", "prqc_passion", "prqc_love"
+                  "prqc_overall"
                 ),
               filename = paste0(here(), "/data/cormat_female_yw.doc"))
 apa.cor.table(dat_w1 %>% 
@@ -748,8 +726,7 @@ apa.cor.table(dat_w1 %>%
                   "agreeableness_partner", "conscientiousness_partner",
                   "extraversion_partner", "neuroticism_partner", "openness_partner",
                   "avoidance", "anxiety", "resp", "trust",
-                  "prqc_overall", "prqc_satisfaction", "prqc_commitment",
-                  "prqc_intimacy", "prqc_trust", "prqc_passion", "prqc_love"
+                  "prqc_overall"
                 ),
               filename = paste0(here(), "/data/cormat_male_yw.doc"))
 ```
@@ -862,22 +839,19 @@ print(p)
 ### Perceived Relationship Quality Component Scale
 
 ```{r plots-prqc}
-for(ivar in paste0(c("Overall", "Satisfaction", "Commitment",
-                     "Intimacy", "Trust", "Passion", "Love"))){
-  p <- plot_hist(var = paste0("prqc_", tolower(ivar)), 
-                 var_name = paste("PRQC Relationship Quality -", ivar), 
-                 data = dat_w1, bin_width = 0.5,
-                 var_sex = "sex", female_male = c("1", "2")) +
-    xlim(1,7)
+p <- plot_hist(var = "prqc_overall", 
+               var_name = paste("PRQC Relationship Quality Overall Score"), 
+               data = dat_w1, bin_width = 0.5,
+               var_sex = "sex", female_male = c("1", "2")) +
+  xlim(1,7)
 
-  if(signif(var = paste0("prqc_", tolower(ivar)), 
-            var_sex = "sex",
-            data = dat_w1,
-            female_male = c("1", "2"))) {
-    p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
-  }
-  print(p)
+if(signif(var = "prqc_overall",
+          var_sex = "sex",
+          data = dat_w1,
+          female_male = c("1", "2"))) {
+  p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
 }
+print(p)
 ```
 
 
