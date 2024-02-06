@@ -143,8 +143,8 @@ h2_function(cor_tab = h1_results$bivariate) %>%
 ```{r H3}
 var_list <- c(
   paste0(
-    c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness"),
-    "_self"),
+    c("agreeableness", "conscientiousness", "extraversion", "openness", "neuroticism"),
+    rep(c("_self", "_partner"), each = 5)),
   "avoidance", "anxiety", "resp", "trust"
 )
 

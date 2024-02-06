@@ -20,6 +20,7 @@ options(digits = 3)
 
 libraries <- c("apaTables",    # for cor table
                "here",         # directory access
+               "psych",        # for scale alphas
                "labelled",     # spss labels
                "stringr",      # working with strings
                "tidyr",        # pivot_wider
@@ -308,9 +309,14 @@ resp %>%
   scroll_box(height = "300px")
 
 # Trust ------------------------------------------------------------------------
+# reverse items: 4, 5, 6, 14
+trust_keys <- rep(1, 17)
+trust_keys[c(4, 5, 6, 14)] <- -1
+
 trust <- data.frame(
   var_old = names(dat_w1)[grepl("Qtrust", names(dat_w1))],
   var_new = paste0("trust_", 1:17),
+  keys = trust_keys,
   labels = str_remove(
     str_remove(
       var_label(dat_w1[,grepl("Qtrust", names(dat_w1))], unlist = T),
@@ -406,6 +412,7 @@ reverse_bfas_fu <- c(
   bfas_partner[bfas_partner$keys == -1, "var_new"]
 )
 reverse_aaq <- aaq[aaq$keys == -1, "var_new"]
+reverse_trust <- trust[trust$keys == -1, "var_new"]
 # reverse scores
 dat_w1[, reverse_bfas_w1] <- 6 - dat_w1[, reverse_bfas_w1]
 dat_w2[, reverse_bfas_fu] <- 6 - dat_w2[, reverse_bfas_fu]
@@ -413,6 +420,10 @@ dat_w3[, reverse_bfas_fu] <- 6 - dat_w3[, reverse_bfas_fu]
 dat_w1[, reverse_aaq] <- 8 - dat_w1[, reverse_aaq]
 dat_w2[, reverse_aaq] <- 8 - dat_w2[, reverse_aaq]
 dat_w3[, reverse_aaq] <- 8 - dat_w3[, reverse_aaq]
+dat_w1[, reverse_trust] <- 8 - dat_w1[, reverse_trust]
+dat_w2[, reverse_trust] <- 8 - dat_w2[, reverse_trust]
+dat_w3[, reverse_trust] <- 8 - dat_w3[, reverse_trust]
+
 
 # BFAS -------------------------------------------------------------------------
 for(var in unique(bfas_self$subscale)) {
@@ -430,6 +441,10 @@ for(var in unique(bfas_self$subscale)) {
   dat_w1[paste0(var, "_self")] <- get(paste0(var, "_self"))
   assign(x = paste0(var, "_partner"), value = rowMeans(partner_df, na.rm = T))
   dat_w1[paste0(var, "_partner")] <- get(paste0(var, "_partner"))
+  
+  # output alphas
+  cat(paste(var, "Cronbach's alpha =", 
+            round(psych::alpha(self_df)$total["raw_alpha"], 2), "\n"))
   
   ### wave 2 and 3 ### 
   self_items_fu <- bfas_fu[bfas_fu$subscale == var, "var_new"]
@@ -465,6 +480,10 @@ for (var in unique(aaq$subscale)) {
   dat_w2[var] <- get(var)
   assign(x = var, value = rowMeans(aaq_df_w3, na.rm = T))
   dat_w3[var] <- get(var)
+  
+  # output alphas
+  cat(paste(var, "Cronbach's alpha =", 
+            round(psych::alpha(aaq_df)$total["raw_alpha"], 2), "\n"))
 }
 
 # Responsiveness ---------------------------------------------------------------
@@ -473,6 +492,11 @@ resp_items <- resp$var_new
 resp_df <- dat_w1[, names(dat_w1) %in% resp_items]
 assign(x = "resp_scale", value = rowMeans(resp_df, na.rm = T))
 dat_w1["resp"] <- resp_scale
+
+# output alphas
+cat(paste("Responsiveness Cronbach's alpha =", 
+          round(psych::alpha(resp_df)$total["raw_alpha"], 2)))
+
 # wave 2
 resp_df_w2 <- dat_w2[, names(dat_w2) %in% resp_items]
 assign(x = "resp_scale", value = rowMeans(resp_df_w2, na.rm = T))
@@ -488,6 +512,11 @@ trust_items <- trust$var_new
 trust_df <- dat_w1[, names(dat_w1) %in% trust_items]
 assign(x = "trust_scale", value = rowMeans(trust_df, na.rm = T))
 dat_w1["trust"] <- trust_scale
+
+# output alphas
+cat(paste("Trust Cronbach's alpha =", 
+          round(psych::alpha(trust_df)$total["raw_alpha"], 2)))
+
 # wave 2
 trust_df_w2 <- dat_w2[, names(dat_w2) %in% trust_items]
 assign(x = "trust_scale", value = rowMeans(trust_df_w2, na.rm = T))
@@ -502,6 +531,11 @@ dat_w3["trust"] <- trust_scale
 prqc_df <- dat_w1[, names(dat_w1) %in% prqc$var_new]
 assign(x = "prqc_overall", value = rowMeans(prqc_df, na.rm = T))
 dat_w1["prqc_overall"] <- get("prqc_overall")
+
+# output alphas
+cat(paste("PRQC Overall Cronbach's alpha =", 
+          round(psych::alpha(prqc_df)$total["raw_alpha"], 2)))
+
 prqc_df_w2 <- dat_w2[, names(dat_w2) %in% prqc$var_new]
 assign(x = "prqc_overall_w2", value = rowMeans(prqc_df_w2, na.rm = T))
 dat_w2["prqc_overall"] <- get("prqc_overall_w2")

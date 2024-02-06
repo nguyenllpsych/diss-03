@@ -19,6 +19,7 @@ options(digits = 3)
 
 libraries <- c("apaTables",    # for cor table
                "here",         # directory access
+               "psych",        # for scale alphas
                "tidyr",        # pivot_wider
                "rio",          # import export
                "summarytools", # descriptives
@@ -66,6 +67,7 @@ dict <- rio::import(file = paste0(here(), "/data/ttp/TTP_Measure Summary.xlsx"),
                     sheet = "Scale Specfications") %>% 
   select(c("Measure", "Variable Name", "Scaling")) %>% 
   filter(!is.na(Measure))
+codebook <- rio::import(file = paste0(here(), "/data/ttp/Dictionary.xlsx"))
 
 # variable type
 data <- data %>%
@@ -238,6 +240,52 @@ There are a total of `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !i
 
 
 ## Baseline demographics
+
+```{r alphas}
+for(trait in c("Agreeableness", "Conscientiousness", "Extraversion",
+               "Neuroticism", "Openness",
+               "Attachment Anxiety", "Attachment Avoidance",
+               "Social Support - Self", "Social Support - Partner",
+               "Social Provision - Self", "Social Provision - Partner",
+               "Sensitivity Caregiving - Self", "Sensitivity Caregiving - Partner",
+               "Proximity Caregiving - Self", "Proximity Caregiving - Partner",
+               "Cooperation Caregiving - Self", "Cooperation Caregiving - Partner",
+               "Compulsive Caregiving - Self", "Compulsive Caregiving - Partner",
+               "Collaboration - Self", "Collaboration - Partner", 
+               "Stalemate - Self", "Stalemate - Partner",
+               "Avoidance-Capitulation - Self", "Avoidance-Capitulation - Partner",
+               "Verbal Aggression - Self", "Verbal Aggression - Partner",
+               "Dyadic Satisfaction", "Dyadic Cohesion")) {
+  # extract male and female items in codebook
+  items_male <- codebook %>% 
+    filter(scale == trait & partner == "male") %>%
+    pull(variable)
+  items_female <- codebook %>% 
+    filter(scale == trait & partner == "female") %>%
+    pull(variable)
+  
+  # extract dataframes and combine
+  df_male <- wave_1 %>%
+    select(all_of(items_male))
+  names(df_male) <- paste0("item_", 1:ncol(df_male))
+  df_female <- wave_1 %>%
+    select(all_of(items_female))
+  names(df_female) <- paste0("item_", 1:ncol(df_female))
+  df_trait <- rbind(df_male, df_female)
+  
+  # reverse items
+  reverse_items <- codebook %>% 
+    filter(scale == trait & partner == "male")
+  reverse_items <- which(reverse_items$key == -1)
+  df_trait[, reverse_items] <- codebook[codebook$scale == trait, "max"][1] + 1 - 
+                               df_trait[, reverse_items]
+
+  # output alphas
+  cat(paste(trait, "Cronbach's alpha =", 
+            round(psych::alpha(df_trait)$total["raw_alpha"], 2), "\n"))
+}
+```
+
 
 ```{r demo descr, results = 'asis'}
 data %>% 
