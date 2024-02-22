@@ -307,6 +307,18 @@ nice_slopes(
     caption = "Simple slope analysis"
   ) %>% 
   kableExtra::kable_styling()
+
+# avoidance - male quality
+nice_slopes(
+  data = data_yw[data_yw$time == 0,],
+  response = "prqc_overall_2",
+  predictor = "slope_avoidance_2",
+  moderator = "slope_avoidance_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+
 ```
 
 ## H6. Longitudinal benefit
