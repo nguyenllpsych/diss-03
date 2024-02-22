@@ -281,6 +281,7 @@ h3_function <- function(var_list, df, baseline = 1) {
     
     # store values
     cor_tab <- rbind(cor_tab, c(var, 
+                                current_cor$parameter + 2,
                                 round(current_cor$estimate, 3), 
                                 round(current_cor$p.value, 5),
                                 round(current_cor$conf.int[1], 3),
@@ -288,7 +289,7 @@ h3_function <- function(var_list, df, baseline = 1) {
   } # END for var LOOP
   
   # rename cor_tab and ensure variable type
-  names(cor_tab) <- c("variable", "correlation", "p_value", "LL", "UL")
+  names(cor_tab) <- c("variable", "n", "correlation", "p_value", "LL", "UL")
   cor_tab$correlation <- as.numeric(cor_tab$correlation)
   cor_tab$p_value <- as.numeric(cor_tab$p_value)
   cor_tab$LL <- as.numeric(cor_tab$LL)

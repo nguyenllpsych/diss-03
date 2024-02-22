@@ -38,9 +38,11 @@ p_extract <- function(path_name, sheet_name, p_names) {
 path_one <- paste0(here(), "/data/Tables-S1.xlsx")
 path_two <- paste0(here(), "/data/Tables-S2.xlsx")
 
-# hypothesis one - table 5 and 6
-s1_simcor <- p_extract(path_name = path_one, sheet_name = "s1_simcor", p_names = "p")
-s2_simcor <- p_extract(path_name = path_two, sheet_name = "s2_simcor", p_names = "p")
+# hypothesis one and three - table 3 and 4
+s1_simcor <- p_extract(path_name = path_one, sheet_name = "s1_simcor", 
+                       p_names = c("...6", "...15"))
+s2_simcor <- p_extract(path_name = path_two, sheet_name = "s2_simcor",
+                       p_names = c("...6", "...15"))
 
 # hypothesis two - table s1 and s2
 s1_cordiff <- round(p_extract(path_name = path_one, sheet_name = "s1_cor-diff", p_names = "p"),
@@ -48,25 +50,25 @@ s1_cordiff <- round(p_extract(path_name = path_one, sheet_name = "s1_cor-diff", 
 s2_cordiff <- round(p_extract(path_name = path_two, sheet_name = "s2_cor-diff", p_names = "p"),
                     3)
 
-# hypothesis three - table 7 and 8
-s1_longcor <- p_extract(path_name = path_one, sheet_name = "s1_longcor", p_names = "p cor")
-s2_longcor <- p_extract(path_name = path_two, sheet_name = "s2_longcor", p_names = "p cor")
-
-# hypothesis four - table 9 and 10
-s1_benefits_baseline <- p_extract(path_name = path_one, sheet_name = "s1_benefits_baseline", 
+# hypothesis four - table s3 and s4
+s1_benefits_baseline <- p_extract(path_name = path_one, 
+                                  sheet_name = "s1_benefits_baseline", 
                                   p_names = c("...5", "...8", "...12", "...15"))
-s2_benefits_baseline <- p_extract(path_name = path_two, sheet_name = "s2_benefits_baseline", 
+s2_benefits_baseline <- p_extract(path_name = path_two, 
+                                  sheet_name = "s2_benefits_baseline", 
                                   p_names = c("...5", "...8", "...12", "...15",
                                               "...19", "...22", "...26", "...29"))
 
-# hypothesis five - table 11 and 12
-s1_benefits_baseline_long <- p_extract(path_name = path_one, sheet_name = "s1_benefits_baseline-long",
+# hypothesis five - table s5 and s6
+s1_benefits_baseline_long <- p_extract(path_name = path_one, 
+                                       sheet_name = "s1_benefits_baseline-long",
                                        p_names = c("...5", "...8", "...12", "...15"))
-s2_benefits_baseline_long <- p_extract(path_name = path_two, sheet_name = "s2_benefits_baseline-long",
+s2_benefits_baseline_long <- p_extract(path_name = path_two, 
+                                       sheet_name = "s2_benefits_baseline-long",
                                        p_names = c("...5", "...8", "...12", "...15",
                                                    "...19", "...22", "...26", "...29"))
 
-# hypothesis six - table 13 and 14
+# hypothesis six - table s7 and s8
 s1_benefits_long_long <- p_extract(path_name = path_one, sheet_name = "s1_benefits_long-long",
                                    p_names = c("...5", "...8", "...12", "...15"))
 s2_benefits_long_long <- p_extract(path_name = path_two, sheet_name = "s2_benefits_long-long",
@@ -78,7 +80,7 @@ p_vals <- matrix(ncol = 2)
 colnames(p_vals) <- c("H", "p")
 
 for(result in paste0(c("s1_", "s2_"), 
-                     rep(c("simcor", "cordiff", "longcor", "benefits_baseline", 
+                     rep(c("simcor", "cordiff", "benefits_baseline", 
                            "benefits_baseline_long", "benefits_long_long"), 
                          each = 2))) {
   

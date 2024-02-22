@@ -20,6 +20,7 @@ library(here)        # for file directory
 library(tidyr)       # for pivot_wider
 library(rio)         # to load in data
 library(dplyr)       # general wrangling
+library(rempsyc)     # simple slopes analysis
 library(Hmisc)       # correlation matrix
 library(psych)       # fisher's z transformation
 library(lme4)        # linear mixed model   
@@ -87,7 +88,10 @@ var_list <- c(
   "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
   "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
   "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
-  "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+  "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner",
+  
+  # relationship quality - not for hypothesis testing, just for slope later
+  "das_satis", "das_coh"
 )
 
 prof_traits_list <- data.frame(
@@ -113,6 +117,7 @@ h1_prof_ca <- h1_function(var_list = NULL, prof_list = prof_ca_list,
 
 # results
 h1_bivar$bivariate %>% 
+  filter(!grepl("das_", variable)) %>%
   knitr::kable(caption = "Bivariate between-partner correlation") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
@@ -152,6 +157,7 @@ for(timepoint in sort(unique(data_ttp$time))) {
 ```{r H2}
 # run function on simulated data
 h2_function(cor_tab = h1_bivar$bivariate) %>% 
+  filter(!grepl("das_", V1) & !grepl("das_", V2)) %>%
   arrange(desc(abs(z_stat))) %>%
   knitr::kable(caption = "Comparisons of bivariate correlations of personality traits vs CAs") %>% 
   kableExtra::kable_styling() %>%
@@ -168,7 +174,8 @@ var_list <- c("ecr_avoid", "ecr_anx",
               "ks_prox_self", "ks_prox_partner", "ks_sens_self", "ks_sens_partner",
               "ks_coop_self", "ks_coop_partner", "ks_comp_self", "ks_comp_partner",
               "con_collab_self", "con_collab_partner", "con_capit_self", "con_capit_partner",
-              "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner"
+              "con_stale_self", "con_stale_partner", "con_verba_self", "con_verba_partner",
+              "das_satis", "das_coh"
 )
 
 # run function
@@ -176,12 +183,14 @@ h3_results <- h3_function(var_list = var_list, baseline = 0, df = data_ttp)
 
 # view longitudinal trends
 h3_results$slopes_tab %>% 
+  filter(!grepl("das_", variable)) %>%
   knitr::kable(caption = "Longitudinal trends in personality variables") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 
 # view longitudinal similarity 
 h3_results$cor_tab %>% 
+  filter(!grepl("das_", variable)) %>%
   knitr::kable(caption = "Bivariate between-partner slope correlations") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
@@ -242,6 +251,21 @@ h4_results$profile_tab %>%
   kableExtra::kable_styling()
 ```
 
+#### Simple slope analysis for significant interaction effects
+
+```{r H4-ss}
+# social provision - male satisfaction
+nice_slopes(
+  data = data_ttp[data_ttp$time == 0,],
+  response = "das_satis_2",
+  predictor = "sp_self_2",
+  moderator = "sp_self_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+```
+
 ## H5. Baseline benefit with longitudinal predictors
 
 #### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with enhanced relationship quality at baseline.
@@ -279,6 +303,21 @@ h5_results$difference_tab %>%
   scroll_box(height = "300px")
 ```
 
+#### Simple slope analysis for significant interaction effects
+
+```{r H5-ss}
+# stalemate - male cohesion
+nice_slopes(
+  data = data_ttp[data_ttp$time == 0,],
+  response = "das_coh_2",
+  predictor = "slope_con_stale_self_2",
+  moderator = "slope_con_stale_self_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+```
+
 ## H6. Longitudinal benefit
 
 #### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with an increase in relationship quality
@@ -312,6 +351,65 @@ h6_results$difference_tab %>%
     caption = "Longitudinal predictors: Simple regression results with difference scores predicting longitudinal relationship quality"
   ) %>% kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
+```
+
+#### Simple slope analysis for significant interaction effects
+
+```{r H6-ss}
+# anxiety - male satisfaction
+nice_slopes(
+  data = data_ttp[data_ttp$time == 0,],
+  response = "slope_das_satis_2",
+  predictor = "slope_ecr_anx_2",
+  moderator = "slope_ecr_anx_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+
+# collaboration - male satisfaction
+nice_slopes(
+  data = data_ttp[data_ttp$time == 0,],
+  response = "slope_das_satis_2",
+  predictor = "slope_con_collab_self_2",
+  moderator = "slope_con_collab_self_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+
+# social support - male satisfaction
+nice_slopes(
+  data = data_ttp[data_ttp$time == 0,],
+  response = "slope_das_satis_2",
+  predictor = "slope_ss_self_2",
+  moderator = "slope_ss_self_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+
+# social provision - male satisfaction
+nice_slopes(
+  data = data_ttp[data_ttp$time == 0,],
+  response = "slope_das_satis_2",
+  predictor = "slope_sp_self_2",
+  moderator = "slope_sp_self_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+
+# social provision - female satisfaction
+nice_slopes(
+  data = data_ttp[data_ttp$time == 0,],
+  response = "slope_das_satis_1",
+  predictor = "slope_sp_self_1",
+  moderator = "slope_sp_self_2") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
 ```
 
 ## H7. Cross-lagged effects

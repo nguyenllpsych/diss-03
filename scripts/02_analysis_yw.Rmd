@@ -20,6 +20,7 @@ library(here)        # for file directory
 library(tidyr)       # for pivot_wider
 library(rio)         # to load in data
 library(dplyr)       # general wrangling
+library(rempsyc)     # simple slopes analysis
 library(Hmisc)       # correlation matrix
 library(psych)       # fisher's z transformation
 library(lme4)        # linear mixed model   
@@ -91,7 +92,10 @@ var_list <- c(
     "_self"),
   
   # CA
-  "avoidance", "anxiety", "resp", "trust"
+  "avoidance", "anxiety", "resp", "trust",
+  
+  # relationship quality - not for hypothesis testing, just for slope later
+  "prqc_overall"
 )
 
 prof_list <- data.frame(
@@ -106,6 +110,7 @@ h1_results <- h1_function(var_list = var_list, prof_list = prof_list,
 
 # results
 h1_results$bivariate %>% 
+  filter(variable != "prqc_overall") %>%
   knitr::kable(caption = "Bivariate between-partner correlation") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
@@ -130,6 +135,7 @@ summary(data_yw %>%
 ```{r H2}
 # run function on simulated data
 h2_function(cor_tab = h1_results$bivariate) %>% 
+  filter(V1 != "prqc_overall" & V2 != "prqc_overall") %>%
   arrange(desc(abs(z_stat))) %>%
   knitr::kable(caption = "Comparisons of bivariate correlations of personality traits vs CAs") %>% 
   kableExtra::kable_styling() %>%
@@ -145,7 +151,8 @@ var_list <- c(
   paste0(
     c("agreeableness", "conscientiousness", "extraversion", "openness", "neuroticism"),
     rep(c("_self", "_partner"), each = 5)),
-  "avoidance", "anxiety", "resp", "trust"
+  "avoidance", "anxiety", "resp", "trust",
+  "prqc_overall"
 )
 
 # longitudinal data to only include full data
@@ -158,12 +165,14 @@ h3_results <- h3_function(var_list = var_list, baseline = 0, df = data_yw_full)
 
 # view longitudinal trends
 h3_results$slopes_tab %>% 
+  filter(variable != "prqc_overall") %>%
   knitr::kable(caption = "Longitudinal trends in personality variables") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 
 # view longitudinal similarity 
 h3_results$cor_tab %>% 
+  filter(variable != "prqc_overall") %>%
   knitr::kable(caption = "Bivariate between-partner slope correlations") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
@@ -221,6 +230,22 @@ h4_results$profile_tab %>%
   kableExtra::kable_styling()
 ```
 
+#### Simple slope analysis for significant interaction effects
+
+```{r H4-ss}
+# agreeableness - male quality
+nice_slopes(
+  data = data_yw[data_yw$time == 0,],
+  response = "prqc_overall_2",
+  predictor = "agreeableness_self_2",
+  moderator = "agreeableness_self_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+```
+
+
 ## H5. Baseline benefit with longitudinal predictors
 
 #### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with enhanced relationship quality at baseline.
@@ -258,6 +283,32 @@ h5_results$difference_tab %>%
   scroll_box(height = "300px")
 ```
 
+#### Simple slope analysis for significant interaction effects
+
+```{r H5-ss}
+# responsiveness - female quality
+nice_slopes(
+  data = data_yw[data_yw$time == 0,],
+  response = "prqc_overall_1",
+  predictor = "slope_resp_1",
+  moderator = "slope_resp_2") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+
+# neuroticism - male quality
+nice_slopes(
+  data = data_yw[data_yw$time == 0,],
+  response = "prqc_overall_2",
+  predictor = "slope_neuroticism_self_2",
+  moderator = "slope_neuroticism_self_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+```
+
 ## H6. Longitudinal benefit
 
 #### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with an increase in relationship quality
@@ -291,6 +342,32 @@ h6_results$difference_tab %>%
     caption = "Longitudinal predictors: Simple regression results with difference scores predicting longitudinal relationship quality"
   ) %>% kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
+```
+
+#### Simple slope analysis for significant interaction effects
+
+```{r H6-ss}
+# neuroticism - male quality
+nice_slopes(
+  data = data_yw[data_yw$time == 0,],
+  response = "slope_prqc_overall_2",
+  predictor = "slope_neuroticism_self_2",
+  moderator = "slope_neuroticism_self_1") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
+
+# anxiety - female quality
+nice_slopes(
+  data = data_yw[data_yw$time == 0,],
+  response = "slope_prqc_overall_1",
+  predictor = "slope_anxiety_1",
+  moderator = "slope_anxiety_2") %>%
+  knitr::kable(
+    caption = "Simple slope analysis"
+  ) %>% 
+  kableExtra::kable_styling()
 ```
 
 ## H7. Cross-lagged effects
