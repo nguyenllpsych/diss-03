@@ -296,8 +296,18 @@ data %>%
 
 ```{r demo-plots-cont}
 # age
-plot_hist(var = "P1Aage", var_name = "age in years", data = data, bin_width = 1, 
+p <- plot_hist(var = "P1Aage", var_name = "age in years", data = data, bin_width = 1, 
           var_sex = "Asex", female_male = c("-1", "1"))
+
+
+if(signif(var = "P1Aage",
+          var_sex = "Asex",
+          data = data,
+          female_male = c("-1", "1"))) {
+  p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
+}
+p
+
 
 # relationship length 
 plot_hist(var = "P1Amtotalmo", var_name = "marriage length in months", data = data,

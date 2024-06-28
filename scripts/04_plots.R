@@ -215,3 +215,71 @@ dat_sample2 %>%
   forestplot(labeltext = c(variable, similarity),
              zero = 0,
              shapes_gp = styles_sample2)
+
+# forest plots of dynamic similarity ----
+dat_pilot <- tibble(
+  variable = c("Agreeableness", "", "Consientiousness", "", "Extraversion", "",
+               "Neuroticism", "", "Openness", "",
+               "Positive Affect", "", "Negative Affect", ""),
+  mean = c(0.26, 0.20, 0.08, 0.08, 0.21, 0.27, 0.24, 0.15, 0.20, 0.17,
+           0.20, 0.19, 0.23, 0.11),
+  lower = c(0.10, 0.03, -0.09, -0.09, 0.04, 0.11, 0.08, -0.02, 0.04, 0.00,
+            0.03, 0.02, 0.06, -0.06),
+  upper = c(0.41, 0.36, 0.24, 0.24, 0.36, 0.42, 0.39, 0.31, 0.36, 0.33,
+            0.35, 0.35, 0.38, 0.28),
+  similarity = c(".26", ".20", ".08", ".08", ".21", ".27", ".24", ".15", ".20", ".17",
+                 ".20", ".19", ".23", ".11"))
+
+styles_pilot <- fpShapesGp(
+  lines = list(
+    gpar(col = "#E69F00",
+         lty = "solid"),
+    gpar(col = "#710c0c",
+         lty = "longdash"),
+    gpar(col = "#E69F00",
+         lty = "solid"),
+    gpar(col = "#710c0c",
+         lty = "longdash"),
+    gpar(col = "#E69F00",
+         lty = "solid"),
+    gpar(col = "#710c0c",
+         lty = "longdash"),
+    gpar(col = "#E69F00",
+         lty = "solid"),
+    gpar(col = "#710c0c",
+         lty = "longdash"),
+    gpar(col = "#E69F00",
+         lty = "solid"),
+    gpar(col = "#710c0c",
+         lty = "longdash"),
+    gpar(col = "#E69F00",
+         lty = "solid"),
+    gpar(col = "#710c0c",
+         lty = "longdash"),
+    gpar(col = "#E69F00",
+         lty = "solid"),
+    gpar(col = "#710c0c",
+         lty = "longdash")
+  ),
+  box = list(
+    gpar(fill = "#E69F00"),
+    gpar(fill = "#710c0c"),
+    gpar(fill = "#E69F00"),
+    gpar(fill = "#710c0c"),
+    gpar(fill = "#E69F00"),
+    gpar(fill = "#710c0c"),
+    gpar(fill = "#E69F00"),
+    gpar(fill = "#710c0c"),
+    gpar(fill = "#E69F00"),
+    gpar(fill = "#710c0c"),
+    gpar(fill = "#E69F00"),
+    gpar(fill = "#710c0c"),
+    gpar(fill = "#E69F00"),
+    gpar(fill = "#710c0c")
+  ) 
+)
+
+dat_pilot %>%
+  forestplot(labeltext = c(variable, similarity),
+             zero = 0, xticks = c(0, 0.5),
+             shapes_gp = styles_pilot)

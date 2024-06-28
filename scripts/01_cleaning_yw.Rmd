@@ -769,6 +769,23 @@ There are a total of `r length(unique(dat_w1$couple))` couples at time 1, `r len
 
 ## 2. Plots and Gender Comparison
 
+### Age
+
+```{r plots-age}
+p <- plot_hist(var = "age", var_name = "Age", 
+               data = dat_w1, bin_width = 1,
+               var_sex = "sex", female_male = c("1", "2"))
+if(signif(var = "age",
+          var_sex = "sex",
+          data = dat_w1,
+          female_male = c("1", "2"))) {
+  p <- p + labs(subtitle = "Significant sex difference (p < 0.05)")
+  }
+
+print(p)
+```
+
+
 ### Big Five Traits
 
 #### Self-Reports
