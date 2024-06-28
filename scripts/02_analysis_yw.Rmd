@@ -74,7 +74,10 @@ miss_analysis(ID = "couple", var = c("agreeableness_self_1", "agreeableness_self
                            each = 2),
                        rep(c(1,2), times = 5))
               ),
-              var_rela = c("prqc_overall_1", "prqc_overall_2"), 
+              var_rela = 
+                paste0(rep(c("prqc_overall_", "avoidance_", "anxiety_",
+                             "resp_", "trust_"), each = 2),
+                       rep(c(1,2), times = 5)),
               data = data_yw)
 ```
 

@@ -65,8 +65,14 @@ miss_analysis(ID = "couple", var = c("ecr_avoid_1", "ecr_avoid_2"),
                            "P1Altotalmo_1", "P1Altotalmo_2",
                            "bfi_o_1", "bfi_c_1", "bfi_e_1", "bfi_a_1", "bfi_n_1",
                            "bfi_o_2", "bfi_c_2", "bfi_e_2", "bfi_a_2", "bfi_n_2"), 
-              var_rela = c("das_satis_1", "das_satis_2",
-                           "das_coh_1", "das_coh_2"), 
+              var_rela = paste0(rep(c("das_satis_", "das_coh_",
+                                      "ecr_avoid_", "ecr_anx_",
+                                      "ss_self_", "sp_self_",
+                                      "ks_prox_self_", "ks_sens_self_",
+                                      "ks_coop_self_", "ks_comp_self_",
+                                      "con_collab_self_", "con_capit_self_", 
+                                      "con_stale_self_", "con_verba_self_"), each = 2),
+                                rep(c(1,2), times = 14)),
               data = data_ttp)
 ```
 
