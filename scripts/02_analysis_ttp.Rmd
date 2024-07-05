@@ -185,24 +185,20 @@ var_list <- c("ecr_avoid", "ecr_anx",
 )
 
 # run function
-h3_results <- h3_function(var_list = var_list, baseline = 0, df = data_ttp)
+h3_results <- h3_function(var_list = var_list, df = data_ttp,
+                          dir = paste0(here(), "/results/ttp"))
 
 # view longitudinal trends
 h3_results$slopes_tab %>% 
-  filter(!grepl("das_", variable)) %>%
-  knitr::kable(caption = "Longitudinal trends in personality variables") %>% 
+  knitr::kable(caption = "Longitudinal trends in all variables") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 
 # view longitudinal similarity 
-h3_results$cor_tab %>% 
-  filter(!grepl("das_", variable)) %>%
+h3_results$results_df %>% 
   knitr::kable(caption = "Bivariate between-partner slope correlations") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
-
-# store slopes for later analyses in main dataframe
-data_ttp <- merge(data_ttp, h3_results$slope_df, all.x = TRUE)
 ```
 
 # Research Question 2. Benefit of Assortative Mating

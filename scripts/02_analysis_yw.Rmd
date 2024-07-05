@@ -20,6 +20,7 @@ library(here)        # for file directory
 library(tidyr)       # for pivot_wider
 library(rio)         # to load in data
 library(dplyr)       # general wrangling
+library(brms)        # longitudinal similarity
 library(rempsyc)     # simple slopes analysis
 library(Hmisc)       # correlation matrix
 library(psych)       # fisher's z transformation
@@ -147,7 +148,7 @@ h2_function(cor_tab = h1_results$bivariate) %>%
 
 ## H3. Longitudinal similarity
 
-#### Longitudinally, romantic partners show a similar change trajectory in self-reported personality across the first two years of parenthood such that their slopes are significantly and positively correlated.
+#### Longitudinally, romantic partners show a similar change trajectory in self-reported personality across the study duration such that their slopes are significantly and positively correlated.
 
 ```{r H3}
 var_list <- c(
@@ -164,25 +165,20 @@ data_yw_full <- data_yw %>%
   filter(couple %in% data_yw_full)
 
 # run function
-h3_results <- h3_function(var_list = var_list, baseline = 0, df = data_yw_full)
+h3_results <- h3_function(var_list = var_list, df = data_yw_full,
+                          dir = paste0(here(), "/results/yw"))
 
 # view longitudinal trends
 h3_results$slopes_tab %>% 
-  filter(variable != "prqc_overall") %>%
-  knitr::kable(caption = "Longitudinal trends in personality variables") %>% 
+  knitr::kable(caption = "Longitudinal trends in all variables") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 
 # view longitudinal similarity 
-h3_results$cor_tab %>% 
-  filter(variable != "prqc_overall") %>%
+h3_results$results_df %>% 
   knitr::kable(caption = "Bivariate between-partner slope correlations") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
-
-# store slopes for later analyses in main dataframe
-data_yw <- merge(data_yw, h3_results$slope_df, all.x = TRUE)
-data_yw_full <- merge(data_yw_full, h3_results$slope_df, all.x = TRUE)
 ```
 
 # Research Question 2. Benefit of Assortative Mating

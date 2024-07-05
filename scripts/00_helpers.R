@@ -227,84 +227,139 @@ h2_function <- function(
 
 ## H3 Function: Longitudinal Similarity ----------------------------------------
 
-h3_function <- function(var_list, df, baseline = 1) {
+#h3_function <- function(var_list, df, baseline = 1) {
+#  
+#  # create cor_tab dataframe for correlated slopes results
+#  cor_tab <- data.frame()
+#  
+#  # create slopes_tab dataframe for fixed effects estimates
+#  slopes_tab <- data.frame()
+#  
+#  # create slope_df dataframe for extracted slopes from separate gender models
+#  slope_df <- data.frame(couple = unique(df$couple),
+#                         time = baseline)
+#  
+#  # loop through variables
+#  for (var in var_list) {
+#    
+#    # var name for each participant
+#    p1_var <- paste0(var, "_1")
+#    p2_var <- paste0(var, "_2")
+#    
+#    # fit linear mixed model
+#    m1 <- lmer(formula = paste(p1_var, "~ time + (1 + time | couple)"),
+#               control = lmerControl(optimizer ="Nelder_Mead"),
+#               data = df)
+#    m2 <- lmer(formula = paste(p2_var, "~ time + (1 + time | couple)"),
+#               control = lmerControl(optimizer ="Nelder_Mead"),
+#               data = df)
+#    
+#    # extract and store fixed effects estimates
+#    slopes_tab <- rbind(
+#      slopes_tab,
+#      c("female", var, round(summary(m1)$coefficients[2,], 3)),
+#      c("male", var, round(summary(m2)$coefficients[2,], 3))
+#    )
+#    
+#    # extract fitted slopes
+#    slope_1 <- coef(m1)$couple[,2]
+#    slope_2 <- coef(m2)$couple[,2]
+#    
+#    # store fitted slopes
+#    slope_df <- merge(slope_df,
+#                      data.frame(couple = rownames(coef(m1)$couple),
+#                                 slope_1,
+#                                 slope_2))
+#    names(slope_df)[names(slope_df) == "slope_1"] <- paste0("slope_",
+#                                                            var, "_1")
+#    names(slope_df)[names(slope_df) == "slope_2"] <- paste0("slope_",
+#                                                            var, "_2")
+#    
+#    # extract correlation and p-value
+#    current_cor <- cor.test(slope_1, slope_2, method = "pearson",
+#                            alternative = "two.sided")
+#    
+#    # store values
+#    cor_tab <- rbind(cor_tab, c(var, 
+#                                current_cor$parameter + 2,
+#                                round(current_cor$estimate, 3), 
+#                                round(current_cor$p.value, 5),
+#                                round(current_cor$conf.int[1], 3),
+#                                round(current_cor$conf.int[2], 3)))  
+#  } # END for var LOOP
+#  
+#  # rename cor_tab and ensure variable type
+#  names(cor_tab) <- c("variable", "n", "correlation", "p_value", "LL", "UL")
+#  cor_tab$correlation <- as.numeric(cor_tab$correlation)
+#  cor_tab$p_value <- as.numeric(cor_tab$p_value)
+#  cor_tab$LL <- as.numeric(cor_tab$LL)
+#  cor_tab$UL <- as.numeric(cor_tab$UL)
+#  
+#  # rename slopes_tab and ensure variable type
+#  names(slopes_tab) <- c("gender", "variable", 
+#                         "slope", "SE", "df", "t_value", "p_value")
+#  
+#  # return cor_tab and slope_df
+#  return(list(cor_tab = cor_tab,
+#              slopes_tab = slopes_tab,
+#              slope_df = slope_df))
+#} # END h3_function
+
+h3_function <- function(var_list, df, dir, seed = 202407){
   
-  # create cor_tab dataframe for correlated slopes results
-  cor_tab <- data.frame()
+  # create an empty data frame to store correlated slopes results
+  results_df <- data.frame()
   
-  # create slopes_tab dataframe for fixed effects estimates
+  # create and empty data frame to store fixed effects estimates
   slopes_tab <- data.frame()
   
-  # create slope_df dataframe for extracted slopes from separate gender models
-  slope_df <- data.frame(couple = unique(df$couple),
-                         time = baseline)
-  
-  # loop through variables
-  for (var in var_list) {
+  # loop through variable list
+  for (var in var_list){
     
-    # var name for each participant
-    p1_var <- paste0(var, "_1")
-    p2_var <- paste0(var, "_2")
+    # check to see if model output already exists
+    file_path <- paste0(dir, "/", var, ".RDS")
+    if (file.exists(file_path)){
+      
+      # grab existing model
+      current_mod <- readRDS(file_path)
+      
+    } else {
+      
+      # specify models
+      M1 <- bf(as.formula(paste0(var, "_1 ~ time + (time | couple)")))
+      M2 <- bf(as.formula(paste0(var, "_2 ~ time + (time | couple)")))
+      
+      # run models
+      set.seed(seed)
+      current_mod <- brm(M1 + M2 + set_rescor(TRUE), data = df, 
+                         cores = 4, chains = 4)
+      
+      # save model output
+      saveRDS(current_mod, file = file_path)
+
+    } # END if else file.exists statement
     
-    # fit linear mixed model
-    m1 <- lmer(formula = paste(p1_var, "~ time + (1 + time | couple)"),
-               control = lmerControl(optimizer ="Nelder_Mead"),
-               data = df)
-    m2 <- lmer(formula = paste(p2_var, "~ time + (1 + time | couple)"),
-               control = lmerControl(optimizer ="Nelder_Mead"),
-               data = df)
-    
-    # extract and store fixed effects estimates
+    # grab relevant rows
+    current_row <- summary(current_mod)$rescor[, c(
+      "Estimate", "Est.Error", "l-95% CI", "u-95% CI")]
+    current_slopes <- summary(current_mod)$fixed[3:4, c(
+      "Estimate", "Est.Error", "l-95% CI", "u-95% CI")]
+
+    # append results to df
+    results_df <- rbind(results_df, current_row)
     slopes_tab <- rbind(
-      slopes_tab,
-      c("female", var, round(summary(m1)$coefficients[2,], 3)),
-      c("male", var, round(summary(m2)$coefficients[2,], 3))
+      slopes_tab, cbind(c("female", "male"), current_slopes)
     )
-    
-    # extract fitted slopes
-    slope_1 <- coef(m1)$couple[,2]
-    slope_2 <- coef(m2)$couple[,2]
-    
-    # store fitted slopes
-    slope_df <- merge(slope_df,
-                      data.frame(couple = rownames(coef(m1)$couple),
-                                 slope_1,
-                                 slope_2))
-    names(slope_df)[names(slope_df) == "slope_1"] <- paste0("slope_",
-                                                            var, "_1")
-    names(slope_df)[names(slope_df) == "slope_2"] <- paste0("slope_",
-                                                            var, "_2")
-    
-    # extract correlation and p-value
-    current_cor <- cor.test(slope_1, slope_2, method = "pearson",
-                            alternative = "two.sided")
-    
-    # store values
-    cor_tab <- rbind(cor_tab, c(var, 
-                                current_cor$parameter + 2,
-                                round(current_cor$estimate, 3), 
-                                round(current_cor$p.value, 5),
-                                round(current_cor$conf.int[1], 3),
-                                round(current_cor$conf.int[2], 3)))  
+
   } # END for var LOOP
   
-  # rename cor_tab and ensure variable type
-  names(cor_tab) <- c("variable", "n", "correlation", "p_value", "LL", "UL")
-  cor_tab$correlation <- as.numeric(cor_tab$correlation)
-  cor_tab$p_value <- as.numeric(cor_tab$p_value)
-  cor_tab$LL <- as.numeric(cor_tab$LL)
-  cor_tab$UL <- as.numeric(cor_tab$UL)
-  
-  # rename slopes_tab and ensure variable type
-  names(slopes_tab) <- c("gender", "variable", 
-                         "slope", "SE", "df", "t_value", "p_value")
-  
-  # return cor_tab and slope_df
-  return(list(cor_tab = cor_tab,
-              slopes_tab = slopes_tab,
-              slope_df = slope_df))
-} # END h3_function
+  # rename results
+  names(slopes_tab)[names(slopes_tab) == 'c("female", "male")'] <- "gender"
 
+  return(list(results_df = results_df,
+              slopes_tab = slopes_tab))
+} # END h3_function
+  
 # Research Question 2: Benefits of Assortative Mating --------------------------
 
 ## H4 Function: Baseline Benefits ----------------------------------------------
