@@ -216,7 +216,7 @@ apa.cor.table(data_wide %>%
                   "con_stale_self_1", "con_stale_partner_1",
                   "con_verba_self_1", "con_verba_partner_1",
                   "das_satis_1", "das_coh_1"),
-              filename = paste0(here(), "/data/cormat_female_ttp.doc"))
+              filename = paste0(here(), "/results/cormat_female_ttp.doc"))
 apa.cor.table(data_wide %>% 
                 filter(time == 0) %>%
                 select(
@@ -233,7 +233,7 @@ apa.cor.table(data_wide %>%
                   "con_stale_self_2", "con_stale_partner_2",
                   "con_verba_self_2", "con_verba_partner_2",
                   "das_satis_2", "das_coh_2"),
-              filename = paste0(here(), "/data/cormat_male_ttp.doc"))
+              filename = paste0(here(), "/results/cormat_male_ttp.doc"))
 ```
 
 There are a total of `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==0, "couple"]))` couples at time 1, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) &  data_wide$time==7, "couple"]))` couples at time 2, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==13, "couple"]))` couples at time 3, `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==19, "couple"]))` couples at time 4, and `r nrow(unique(data_wide[!is.na(data_wide$ecr_avoid_1) & !is.na(data_wide$ecr_avoid_2) & data_wide$time==25, "couple"]))` couples at time 5, using the ECR Avoidance variable to assess missingness.

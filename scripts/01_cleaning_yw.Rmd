@@ -751,7 +751,7 @@ apa.cor.table(dat_w1 %>%
                   "avoidance", "anxiety", "resp", "trust",
                   "prqc_overall"
                 ),
-              filename = paste0(here(), "/data/cormat_female_yw.doc"))
+              filename = paste0(here(), "/results/cormat_female_yw.doc"))
 apa.cor.table(dat_w1 %>% 
                 filter(sex == 2) %>%
                 select(
@@ -762,7 +762,7 @@ apa.cor.table(dat_w1 %>%
                   "avoidance", "anxiety", "resp", "trust",
                   "prqc_overall"
                 ),
-              filename = paste0(here(), "/data/cormat_male_yw.doc"))
+              filename = paste0(here(), "/results/cormat_male_yw.doc"))
 ```
 
 There are a total of `r length(unique(dat_w1$couple))` couples at time 1, `r length(unique(dat_w2$couple))` at time 2, and `r length(unique(dat_w3$couple))` at time 3.
