@@ -160,12 +160,12 @@ var_list <- c(
 )
 
 # longitudinal data to only include full data
-data_yw_full <- table(data_yw$couple)[table(data_yw$couple) == 3] %>% names()
-data_yw_full <- data_yw %>%
-  filter(couple %in% data_yw_full)
-
+#data_yw_full <- table(data_yw$couple)[table(data_yw$couple) == 3] %>% names()
+#data_yw_full <- data_yw %>%
+#  filter(couple %in% data_yw_full)
+#
 # run function
-h3_results <- h3_function(var_list = var_list, df = data_yw_full,
+h3_results <- h3_function(var_list = var_list, df = data_yw,
                           dir = paste0(here(), "/results/yw"))
 
 # view longitudinal trends

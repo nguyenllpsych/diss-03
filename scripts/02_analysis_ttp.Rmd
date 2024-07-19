@@ -20,6 +20,7 @@ library(here)        # for file directory
 library(tidyr)       # for pivot_wider
 library(rio)         # to load in data
 library(dplyr)       # general wrangling
+library(brms)        # longitudinal similarity
 library(rempsyc)     # simple slopes analysis
 library(Hmisc)       # correlation matrix
 library(psych)       # fisher's z transformation
