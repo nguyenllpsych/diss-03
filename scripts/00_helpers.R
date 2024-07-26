@@ -1678,3 +1678,219 @@ miss_analysis <- function(ID, var, var_demo, var_rela, data, baseline = 0){
       print()
   }
 } # END miss_analysis
+
+# function for test-retest reliability
+icc_function <- function(ID, var, time_var, time_vector, df){
+  # create wide dataframe with n_col = length(time_vector)
+  #                            n_row = length(unique(ID))
+  
+  #TODO: continue here
+  
+  return(ICC(df[, c()]))
+}
+
+# function for dyadic response surface analysis
+# 1. fit full model without gender constrain
+# 2. fit gender-constrained model and determine whether it is significantly worse
+# 3. extract info for the chosen model
+# 4. find support for broad congruence:
+#   - negative a4
+#   - non significant a3 and a5
+#   - allowing main effects: a1 and a2 can be different from 0
+drsa_function <- function(
+  # character vector of personality variables
+  var_list, 
+  # character vector of relationship quality variables
+  quality_list, 
+  # data frame for analyses
+  df) {
+  
+  # create dataframe of only baseline data
+  df <- df[df$time == 0,]
+  
+  # initialize empty dataframe to store results
+  est_df <- results_df <- data.frame()
+  
+  # loop through predictor variables
+  for(var in var_list) {
+    # grab vectors of predictors
+    p1_var <- df[, paste0(var, "_1"), drop = T] # female
+    p2_var <- df[, paste0(var, "_2"), drop = T] # male
+    
+    # centering data based on grand mean (Schonbrodt et al., 2018)
+    grand_mean <- mean(c(p1_var, p2_var), na.rm = T)
+    df$centered_1 <- p1_var - grand_mean
+    df$centered_2 <- p2_var - grand_mean
+  
+    # squaring data
+    df$centeredsq_1 <- df$centered_1*df$centered_1
+    df$centeredsq_2 <- df$centered_2*df$centered_2
+    
+    # interaction
+    df$centeredint <- df$centered_1*df$centered_2
+
+    # loop through outcome variables
+    for(qual in quality_list){
+        
+      # full model specification
+      full_mod <- paste(
+    
+        # predicting female quality
+        #   b1f: actor; b2f: partner; b3f: actor^2; b4f: int; b5f: partner^2
+        paste0(qual, "_1 ~ b1f*centered_1 + b2f*centered_2 +
+               b3f*centeredsq_1 + b4f*centeredint + b5f*centeredsq_2"), "\n",
+        
+        # predicting male quality
+        #   b1m: partner; b2m: actor; b3m: partner^2; b4m: int; b5m: actor^2
+        paste0(qual, "_2 ~ b2m*centered_2 + b1m*centered_1 +
+               b5m*centeredsq_2 + b4m*centeredint + b3m*centeredsq_1"), "\n",
+        
+        # residual correlation
+        paste0(qual, "_1 ~~ ", qual, "_2"))
+  
+      # reduced model specification
+      reduced_mod <- paste(
+        
+        full_mod,
+        
+        # actor effect equality constraints
+        '
+        b1f == b2m
+        b3f == b5m',
+        
+        # partner effect equality constraints
+        '
+        b2f == b1m
+        b5f == b3m',
+        
+        # interaction effect equality constraints
+        '
+        b4f == b4m'
+      )
+      
+      # fit full mod
+      fit_full_mod <- sem(full_mod,
+                        data=df, meanstructure=TRUE,
+                        estimator="ML", missing="fiml",
+                        se="boot", bootstrap =100)
+      
+      # fit reduced mod
+      fit_reduced_mod <- sem(reduced_mod,
+                           data=df, meanstructure=TRUE,
+                           estimator="ML", missing="fiml",
+                           se="boot", bootstrap =100)
+      
+      # model comparison
+      compare_mod <- anova(fit_reduced_mod, fit_full_mod)
+      compare_mod_p <- compare_mod$`Pr(>Chisq)`[2]
+      
+      # add auxiliary params to final chosen model
+      if(compare_mod_p < .05) {
+        
+        # if full model is significantly better
+        final_mod <- paste(
+          full_mod,
+          '
+          a1f := b1f + b2f
+          a2f := b3f + b4f + b5f
+          a3f := b1f - b2f
+          a4f := b3f - b4f + b5f
+          a5f := b3f - b5f
+          
+          a1m := b1m + b2m
+          a2m := b3m + b4m + b5m
+          a3m := b1m - b2m
+          a4m := b3m - b4m + b5m
+          a5m := b3m - b5m'
+        )
+      } else {
+        
+        # if full model is not significantly better
+        final_mod <- paste(
+          reduced_mod,
+          '
+          a1f := b1f + b2f
+          a2f := b3f + b4f + b5f
+          a3f := b1f - b2f
+          a4f := b3f - b4f + b5f
+          a5f := b3f - b5f
+          '
+        )
+      }
+      
+      # fit final model
+      fit_final_mod <- sem(final_mod,
+                           data=df, meanstructure=TRUE,
+                           estimator="ML", missing="fiml",
+                           se="boot", bootstrap=100)
+      
+      # extract summary
+      est <- as.data.frame(unclass(standardizedSolution(fit_final_mod))) %>% 
+        filter(op == ":=") %>%
+        mutate(predictor = var,
+               outcome = qual) %>%
+        select(predictor, outcome, label, 
+               est.std, se, pvalue, ci.lower, ci.upper)
+      
+      # append estimates to est_df
+      est_df <- rbind(est_df,
+                      est)
+      
+      # extract congruence results for each gender
+      actor_partner_f <-
+        est[est$label=="a1f", "pvalue"] < .05 | 
+        est[est$label=="a2f", "pvalue"] < .05
+      actor_partner_m <-
+        est[est$label=="a1m", "pvalue"] < .05 | 
+        est[est$label=="a2m", "pvalue"] < .05
+      broad_congruence_f <- 
+        # negative and significant a4
+        est[est$label == "a4f", "est.std"] < 0 & 
+          est[est$label == "a4f", "pvalue"] < .05 &
+        # nonsignificant a3 and a5
+        est[est$label == "a3f", "pvalue"] > .05 &
+          est[est$label == "a5f", "pvalue"] > .05
+      broad_congruence_m <- 
+        # negative and significant a4
+        est[est$label == "a4m", "est.std"] < 0 & 
+          est[est$label == "a4m", "pvalue"] < .05 &
+        # nonsignificant a3 and a5
+        est[est$label == "a3m", "pvalue"] > .05 &
+          est[est$label == "a5m", "pvalue"] > .05
+      strict_congruence_f <-
+        broad_congruence_f & !actor_partner_f
+      strict_congruence_m <-
+        broad_congruence_m & !actor_partner_m
+      
+      # store congruence results in results_df
+      if(compare_mod_p < .05){
+        # if full model is used -> store both gender results
+        results <- data.frame(
+          predictor = var,
+          outcome = qual,
+          model = "full",
+          sex = c("female", "male"),
+          actor_partner = c(actor_partner_f, actor_partner_m),
+          broad_congruence = c(broad_congruence_f, broad_congruence_m),
+          strict_congruence = c(strict_congruence_f, strict_congruence_m)
+        )
+      } else {
+        # if reduced model is used -> store only f params (they're the same)
+        results <- data.frame(
+          predictor = var,
+          outcome = qual,
+          model = "reduced",
+          sex = NA,
+          actor_partner = actor_partner_f,
+          broad_congruence = broad_congruence_f,
+          strict_congruence = strict_congruence_f
+        )
+      } # END if else STATEMENT
+      results_df <- rbind(results_df, results)
+    } # END for qual LOOP
+  } # END for var LOOP
+
+  # return output
+  return(list(est_df = est_df,
+              results_df = results_df))
+} #END drsa_function 

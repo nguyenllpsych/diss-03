@@ -525,7 +525,3 @@ h10_results$est_df_p2 %>%
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 ```
-
-
-
-
