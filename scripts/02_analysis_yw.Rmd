@@ -166,7 +166,7 @@ var_list <- c(
 #
 # run function
 h3_results <- h3_function(var_list = var_list, df = data_yw,
-                          dir = paste0(here(), "/results/yw"))
+                          dir = paste0(here(), "/results/yw/brm"))
 
 # view longitudinal trends
 h3_results$slopes_tab %>% 
@@ -182,6 +182,38 @@ h3_results$results_df %>%
 ```
 
 # Research Question 2. Benefit of Assortative Mating
+
+## Dyadic Response Surface Analysis - Baseline
+
+```{r drsa}
+var_list <- c(
+  # traits
+  paste0(
+    c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness"),
+    "_self"),
+  # CA
+  "avoidance", "anxiety", "resp", "trust"
+)
+quality_list <- "prqc_overall"
+
+# run function
+drsa_results <- drsa_function(var_list = var_list,
+                              quality_list = quality_list,
+                              dir = paste0(here(), "/results/yw/drsa"),
+                              df = data_yw)
+
+# output results
+drsa_results$est_df %>% 
+  knitr::kable(caption = "All estimates for DRSA auxiliary parameters") %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+drsa_results$results_df %>% 
+  knitr::kable(caption = "DRSA congruence results") %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
 
 ## H4. Baseline benefit
 
@@ -525,3 +557,4 @@ h10_results$est_df_p2 %>%
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 ```
+

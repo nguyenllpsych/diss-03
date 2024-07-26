@@ -1702,6 +1702,8 @@ drsa_function <- function(
   var_list, 
   # character vector of relationship quality variables
   quality_list, 
+  # directory to store final model objects,
+  dir,
   # data frame for analyses
   df) {
   
@@ -1731,99 +1733,111 @@ drsa_function <- function(
 
     # loop through outcome variables
     for(qual in quality_list){
-        
-      # full model specification
-      full_mod <- paste(
-    
-        # predicting female quality
-        #   b1f: actor; b2f: partner; b3f: actor^2; b4f: int; b5f: partner^2
-        paste0(qual, "_1 ~ b1f*centered_1 + b2f*centered_2 +
-               b3f*centeredsq_1 + b4f*centeredint + b5f*centeredsq_2"), "\n",
-        
-        # predicting male quality
-        #   b1m: partner; b2m: actor; b3m: partner^2; b4m: int; b5m: actor^2
-        paste0(qual, "_2 ~ b2m*centered_2 + b1m*centered_1 +
-               b5m*centeredsq_2 + b4m*centeredint + b3m*centeredsq_1"), "\n",
-        
-        # residual correlation
-        paste0(qual, "_1 ~~ ", qual, "_2"))
-  
-      # reduced model specification
-      reduced_mod <- paste(
-        
-        full_mod,
-        
-        # actor effect equality constraints
-        '
-        b1f == b2m
-        b3f == b5m',
-        
-        # partner effect equality constraints
-        '
-        b2f == b1m
-        b5f == b3m',
-        
-        # interaction effect equality constraints
-        '
-        b4f == b4m'
-      )
       
-      # fit full mod
-      fit_full_mod <- sem(full_mod,
-                        data=df, meanstructure=TRUE,
-                        estimator="ML", missing="fiml",
-                        se="boot", bootstrap =100)
-      
-      # fit reduced mod
-      fit_reduced_mod <- sem(reduced_mod,
-                           data=df, meanstructure=TRUE,
-                           estimator="ML", missing="fiml",
-                           se="boot", bootstrap =100)
-      
-      # model comparison
-      compare_mod <- anova(fit_reduced_mod, fit_full_mod)
-      compare_mod_p <- compare_mod$`Pr(>Chisq)`[2]
-      
-      # add auxiliary params to final chosen model
-      if(compare_mod_p < .05) {
-        
-        # if full model is significantly better
-        final_mod <- paste(
-          full_mod,
-          '
-          a1f := b1f + b2f
-          a2f := b3f + b4f + b5f
-          a3f := b1f - b2f
-          a4f := b3f - b4f + b5f
-          a5f := b3f - b5f
-          
-          a1m := b1m + b2m
-          a2m := b3m + b4m + b5m
-          a3m := b1m - b2m
-          a4m := b3m - b4m + b5m
-          a5m := b3m - b5m'
-        )
+      # check to see if model already exists
+      # if yes, grab existing model
+      # if no, go through full modeling process
+      file_path <- paste0(dir, "/", var, "_", qual, ".RDS")
+      if (file.exists(file_path)){
+        fit_final_mod <- readRDS(file_path)
       } else {
         
-        # if full model is not significantly better
-        final_mod <- paste(
-          reduced_mod,
+        # full model specification
+        full_mod <- paste(
+      
+          # predicting female quality
+          #   b1f: actor; b2f: partner; b3f: actor^2; b4f: int; b5f: partner^2
+          paste0(qual, "_1 ~ b1f*centered_1 + b2f*centered_2 +
+                 b3f*centeredsq_1 + b4f*centeredint + b5f*centeredsq_2"), "\n",
+          
+          # predicting male quality
+          #   b1m: partner; b2m: actor; b3m: partner^2; b4m: int; b5m: actor^2
+          paste0(qual, "_2 ~ b2m*centered_2 + b1m*centered_1 +
+                 b5m*centeredsq_2 + b4m*centeredint + b3m*centeredsq_1"), "\n",
+          
+          # residual correlation
+          paste0(qual, "_1 ~~ ", qual, "_2"))
+    
+        # reduced model specification
+        reduced_mod <- paste(
+          
+          full_mod,
+          
+          # actor effect equality constraints
           '
-          a1f := b1f + b2f
-          a2f := b3f + b4f + b5f
-          a3f := b1f - b2f
-          a4f := b3f - b4f + b5f
-          a5f := b3f - b5f
+          b1f == b2m
+          b3f == b5m',
+          
+          # partner effect equality constraints
           '
+          b2f == b1m
+          b5f == b3m',
+          
+          # interaction effect equality constraints
+          '
+          b4f == b4m'
         )
-      }
-      
-      # fit final model
-      fit_final_mod <- sem(final_mod,
-                           data=df, meanstructure=TRUE,
-                           estimator="ML", missing="fiml",
-                           se="boot", bootstrap=100)
-      
+        
+        # fit full mod
+        fit_full_mod <- sem(full_mod,
+                          data=df, meanstructure=TRUE,
+                          estimator="ML", missing="fiml",
+                          se="boot", bootstrap =100)
+        
+        # fit reduced mod
+        fit_reduced_mod <- sem(reduced_mod,
+                             data=df, meanstructure=TRUE,
+                             estimator="ML", missing="fiml",
+                             se="boot", bootstrap =100)
+        
+        # model comparison
+        compare_mod <- anova(fit_reduced_mod, fit_full_mod)
+        compare_mod_p <- compare_mod$`Pr(>Chisq)`[2]
+        
+        # add auxiliary params to final chosen model
+        if(compare_mod_p < .05) {
+          
+          # if full model is significantly better
+          final_mod <- paste(
+            full_mod,
+            '
+            a1f := b1f + b2f
+            a2f := b3f + b4f + b5f
+            a3f := b1f - b2f
+            a4f := b3f - b4f + b5f
+            a5f := b3f - b5f
+            
+            a1m := b1m + b2m
+            a2m := b3m + b4m + b5m
+            a3m := b1m - b2m
+            a4m := b3m - b4m + b5m
+            a5m := b3m - b5m'
+          )
+        } else {
+          
+          # if full model is not significantly better
+          final_mod <- paste(
+            reduced_mod,
+            '
+            a1f := b1f + b2f
+            a2f := b3f + b4f + b5f
+            a3f := b1f - b2f
+            a4f := b3f - b4f + b5f
+            a5f := b3f - b5f
+            '
+          )
+        }
+        
+        # fit final model
+        fit_final_mod <- sem(final_mod,
+                             data=df, meanstructure=TRUE,
+                             estimator="ML", missing="fiml",
+                             se="boot", bootstrap=100)
+        
+        # save final model
+        saveRDS(fit_final_mod, file = paste0(file_path))
+      } # END else file_path exists STATEMENT
+
       # extract summary
       est <- as.data.frame(unclass(standardizedSolution(fit_final_mod))) %>% 
         filter(op == ":=") %>%
@@ -1836,13 +1850,10 @@ drsa_function <- function(
       est_df <- rbind(est_df,
                       est)
       
-      # extract congruence results for each gender
+      # extract congruence results
       actor_partner_f <-
         est[est$label=="a1f", "pvalue"] < .05 | 
         est[est$label=="a2f", "pvalue"] < .05
-      actor_partner_m <-
-        est[est$label=="a1m", "pvalue"] < .05 | 
-        est[est$label=="a2m", "pvalue"] < .05
       broad_congruence_f <- 
         # negative and significant a4
         est[est$label == "a4f", "est.std"] < 0 & 
@@ -1850,21 +1861,25 @@ drsa_function <- function(
         # nonsignificant a3 and a5
         est[est$label == "a3f", "pvalue"] > .05 &
           est[est$label == "a5f", "pvalue"] > .05
-      broad_congruence_m <- 
-        # negative and significant a4
-        est[est$label == "a4m", "est.std"] < 0 & 
-          est[est$label == "a4m", "pvalue"] < .05 &
-        # nonsignificant a3 and a5
-        est[est$label == "a3m", "pvalue"] > .05 &
-          est[est$label == "a5m", "pvalue"] > .05
       strict_congruence_f <-
         broad_congruence_f & !actor_partner_f
-      strict_congruence_m <-
-        broad_congruence_m & !actor_partner_m
       
       # store congruence results in results_df
-      if(compare_mod_p < .05){
+      if(nrow(est) == 10){
         # if full model is used -> store both gender results
+        actor_partner_m <-
+          est[est$label=="a1m", "pvalue"] < .05 | 
+          est[est$label=="a2m", "pvalue"] < .05
+        broad_congruence_m <- 
+          # negative and significant a4
+          est[est$label == "a4m", "est.std"] < 0 & 
+          est[est$label == "a4m", "pvalue"] < .05 &
+          # nonsignificant a3 and a5
+          est[est$label == "a3m", "pvalue"] > .05 &
+          est[est$label == "a5m", "pvalue"] > .05
+        strict_congruence_m <-
+          broad_congruence_m & !actor_partner_m
+
         results <- data.frame(
           predictor = var,
           outcome = qual,
@@ -1887,6 +1902,7 @@ drsa_function <- function(
         )
       } # END if else STATEMENT
       results_df <- rbind(results_df, results)
+      
     } # END for qual LOOP
   } # END for var LOOP
 
