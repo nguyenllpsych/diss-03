@@ -313,6 +313,9 @@ h3_function <- function(var_list, df, dir, seed = 202407){
   # create and empty data frame to store fixed effects estimates
   slopes_tab <- data.frame()
   
+  # create slope_df dataframe for extracted individual random slopes
+  slope_df <- data.frame(couple = unique(df$couple))
+
   # loop through variable list
   for (var in var_list){
     
@@ -350,6 +353,26 @@ h3_function <- function(var_list, df, dir, seed = 202407){
     slopes_tab <- rbind(
       slopes_tab, cbind(c("female", "male"), current_slopes)
     )
+    
+    # extract fitted slopes
+    col_names <- paste0("Estimate.",
+                        gsub("[^[:alnum:]]", "", var), 
+                        c("1", "2"), "_time")
+      
+    slope_1 <- as.data.frame(ranef(current_mod)$couple)[col_names[1]]
+    slope_2 <- as.data.frame(ranef(current_mod)$couple)[col_names[2]]
+    names(slope_1)[1] <- "slope_1"
+    names(slope_2)[1] <- "slope_2"
+    
+    # store fitted slopes
+    slope_df <- merge(slope_df,
+                      data.frame(couple = rownames(slope_1),
+                                 slope_1,
+                                 slope_2))
+    names(slope_df)[names(slope_df) == "slope_1"] <- paste0("slope_",
+                                                            var, "_1")
+    names(slope_df)[names(slope_df) == "slope_2"] <- paste0("slope_",
+                                                            var, "_2")
 
   } # END for var LOOP
   
@@ -357,7 +380,8 @@ h3_function <- function(var_list, df, dir, seed = 202407){
   names(slopes_tab)[names(slopes_tab) == 'c("female", "male")'] <- "gender"
 
   return(list(results_df = results_df,
-              slopes_tab = slopes_tab))
+              slopes_tab = slopes_tab,
+              slope_df = slope_df))
 } # END h3_function
   
 # Research Question 2: Benefits of Assortative Mating --------------------------
@@ -374,7 +398,7 @@ h4_function <- function(
     # character vector of relationship quality variables
     quality_list, 
     # time point defaults to baseline
-    time = 1, df) {
+    time = 0, df) {
   
   # create data frame to store results
   # INTERACTION_TAB for multiple regression
@@ -559,7 +583,7 @@ h5_function <- function(
     # character vector of relationship quality variables
     quality_list, 
     # time point defaults to baseline
-    time = 1, df) {
+    time = 0, df) {
   
   # create data frame to store results
   # INTERACTION_TAB for multiple regression
@@ -673,7 +697,7 @@ h6_function <- function(
     # character vector of relationship quality variables
     quality_list, 
     # data frame for analyses
-    df, baseline = 1) {
+    df, baseline = 0) {
   
   # create data frame to store results
   # INTERACTION_TAB for multiple regression

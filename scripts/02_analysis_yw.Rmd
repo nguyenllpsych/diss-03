@@ -159,11 +159,6 @@ var_list <- c(
   "prqc_overall"
 )
 
-# longitudinal data to only include full data
-#data_yw_full <- table(data_yw$couple)[table(data_yw$couple) == 3] %>% names()
-#data_yw_full <- data_yw %>%
-#  filter(couple %in% data_yw_full)
-#
 # run function
 h3_results <- h3_function(var_list = var_list, df = data_yw,
                           dir = paste0(here(), "/results/yw/brm"))
@@ -179,6 +174,13 @@ h3_results$results_df %>%
   knitr::kable(caption = "Bivariate between-partner slope correlations") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
+
+# merge slope data to original dataframe
+slope_df <- h3_results$slope_df %>%
+  mutate(time = 0)
+data_yw <- merge(data_yw,
+                 slope_df,
+                 all = T)
 ```
 
 # Research Question 2. Benefit of Assortative Mating
@@ -204,11 +206,55 @@ drsa_results <- drsa_function(var_list = var_list,
 
 # output results
 drsa_results$est_df %>% 
+  mutate(across(is.numeric, round, digits=2)) %>%
   knitr::kable(caption = "All estimates for DRSA auxiliary parameters") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 
 drsa_results$results_df %>% 
+  knitr::kable(caption = "DRSA congruence results") %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+## Dyadic Response Surface Analysis - Longitudinal
+
+```{r drsa-long}
+# create dataframe of average relationship quality across time
+data_yw_drsalong <- data_yw %>%
+  group_by(couple) %>%
+  mutate(prqc_overall_1_avg = mean(prqc_overall_1, na.rm=T),
+         prqc_overall_2_avg = mean(prqc_overall_2, na.rm=T)) %>%
+  ungroup() %>%
+  filter(time == 0)
+
+# params for longitudinal drsa models
+var_list <- c(
+  # traits
+  paste0(
+    "slope_",
+    c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness"),
+    "_self"),
+  # CA
+  paste0("slope_", c("avoidance", "anxiety", "resp", "trust"))
+)
+quality_list <- "slope_prqc_overall"
+
+# run function
+#TODO: fix error here
+drsa_results <- drsa_function(var_list = var_list,
+                              quality_list = quality_list,
+                              dir = paste0(here(), "/results/yw/drsa_long"),
+                              df = data_yw_drsalong)
+
+# output results
+drsa_long_results$est_df %>% 
+  mutate(across(is.numeric, round, digits=2)) %>%
+  knitr::kable(caption = "All estimates for DRSA auxiliary parameters") %>% 
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+drsa_long_results$results_df %>% 
   knitr::kable(caption = "DRSA congruence results") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")

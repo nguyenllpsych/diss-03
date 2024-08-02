@@ -200,6 +200,13 @@ h3_results$results_df %>%
   knitr::kable(caption = "Bivariate between-partner slope correlations") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
+
+# merge slope data to original dataframe
+slope_df <- h3_results$slope_df %>%
+  mutate(time = 0)
+data_yw <- merge(data_ttp,
+                 slope_df,
+                 all = T)
 ```
 
 # Research Question 2. Benefit of Assortative Mating
@@ -230,6 +237,7 @@ drsa_results <- drsa_function(var_list = var_list,
 
 # output results
 drsa_results$est_df %>% 
+  mutate(across(is.numeric, round, digits=2)) %>%
   knitr::kable(caption = "All estimates for DRSA auxiliary parameters") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
