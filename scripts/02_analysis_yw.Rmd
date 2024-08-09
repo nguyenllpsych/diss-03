@@ -223,8 +223,8 @@ drsa_results$results_df %>%
 # create dataframe of average relationship quality across time
 data_yw_drsalong <- data_yw %>%
   group_by(couple) %>%
-  mutate(prqc_overall_1_avg = mean(prqc_overall_1, na.rm=T),
-         prqc_overall_2_avg = mean(prqc_overall_2, na.rm=T)) %>%
+  mutate(prqc_overall_avg_1 = mean(prqc_overall_1, na.rm=T),
+         prqc_overall_avg_2 = mean(prqc_overall_2, na.rm=T)) %>%
   ungroup() %>%
   filter(time == 0)
 
@@ -238,14 +238,14 @@ var_list <- c(
   # CA
   paste0("slope_", c("avoidance", "anxiety", "resp", "trust"))
 )
-quality_list <- "slope_prqc_overall"
+quality_list <- "prqc_overall_avg"
 
 # run function
-#TODO: fix error here
-drsa_results <- drsa_function(var_list = var_list,
-                              quality_list = quality_list,
-                              dir = paste0(here(), "/results/yw/drsa_long"),
-                              df = data_yw_drsalong)
+drsa_long_results <- drsa_function(var_list = var_list,
+                                   quality_list = quality_list,
+                                   dir = paste0(here(), "/results/yw/drsa_long"),
+                                   df = data_yw_drsalong,
+                                   scale = T)
 
 # output results
 drsa_long_results$est_df %>% 

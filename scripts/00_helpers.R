@@ -1729,7 +1729,10 @@ drsa_function <- function(
   # directory to store final model objects,
   dir,
   # data frame for analyses
-  df) {
+  df,
+  # whether or not to scale the predictors
+  # due to small slope values
+  scale = FALSE) {
   
   # create dataframe of only baseline data
   df <- df[df$time == 0,]
@@ -1747,6 +1750,12 @@ drsa_function <- function(
     grand_mean <- mean(c(p1_var, p2_var), na.rm = T)
     df$centered_1 <- p1_var - grand_mean
     df$centered_2 <- p2_var - grand_mean
+    
+    # scale results if too small
+    if(scale){
+      df$centered_1 <- scale(df$centered_1)
+      df$centered_2 <- scale(df$centered_2)
+    }
   
     # squaring data
     df$centeredsq_1 <- df$centered_1*df$centered_1
@@ -1757,7 +1766,7 @@ drsa_function <- function(
 
     # loop through outcome variables
     for(qual in quality_list){
-      
+
       # check to see if model already exists
       # if yes, grab existing model
       # if no, go through full modeling process
