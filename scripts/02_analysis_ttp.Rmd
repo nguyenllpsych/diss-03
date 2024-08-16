@@ -29,6 +29,7 @@ library(lmerTest)    # linear mixed model significance test
 library(lavaan)      # RI-CLPM
 library(semPlot)     # semPaths
 library(kableExtra)  # for styling and scroll_box
+library(RSA)         # for plotting DRSA
 
 # source the helper file
 source("00_helpers.R")
@@ -290,6 +291,35 @@ drsa_long_results$results_df %>%
   knitr::kable(caption = "DRSA congruence results") %>% 
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
+```
+
+
+### Plot DRSA
+
+There was 1 model for which a broad congruence pattern was found: longitudinal similarity on caregiving Proximity v. Distance on Dyadic Cohesion.
+
+The dyadic response surface analysis plot of these associations are presented below:
+
+```{r drsa-long-plot}
+# load model
+mod <- readRDS(paste0(
+  here(), "/results/ttp/drsa_long/slope_ks_prox_self_das_coh_avg.RDS"))
+coefs <- as.data.frame(unclass(standardizedSolution(mod))) %>%
+  select(label, est.std) %>%
+  mutate(est.std=round(est.std, 3))
+
+plotRSA(x=coefs[coefs$label=="b1f","est.std"], 
+        y=coefs[coefs$label=="b2f","est.std"], 
+        x2=coefs[coefs$label=="b3f","est.std"], 
+        xy=coefs[coefs$label=="b4f","est.std"], 
+        y2=coefs[coefs$label=="b5f","est.std"], 
+        xlab="Actor", ylab="Partner", zlab="Outcome", 
+        project = c(), axes=c("LOC"), 
+        param=TRUE, legend=TRUE, gridsize=10, 
+        cex.tickLabel=0.5, cex.axesLabel=1, cex.main=1, border=TRUE, 
+        distance=c(1,1,1), bw=TRUE, 
+        pal=colorRampPalette(c("#333333", "#888888", "#EEEEEE"))(8), 
+        main="Dyadic Response Surface Analysis Plot: Broad Congruence")
 ```
 
 
