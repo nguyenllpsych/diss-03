@@ -12,7 +12,7 @@ to relationship quality
 
 **Corresponding Author:** Linh Nguyen at nguyenllpsych@gmail.com
 
-**Collaborators:** Yanna Weisberg, Colin DeYoung, Jami Eller, William S. Rholes, Jeffry A. Simpson, Moin Syed
+**Collaborators:** Yanna Weisberg, Colin DeYoung, William S. Rholes, Jeffry A. Simpson, Moin Syed
 
 **Institution:** University of Minnesota - Department of Psychology
 
@@ -32,7 +32,7 @@ to relationship quality
 **Reports:**
 
 - Preregistration using simulated data with 10 functions for 10 hypotheses: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-prereg)
-- Exploratory data analyses on study one - Early Dating: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-descr-yw)
-- Exploratory data analyses on study two - Transition to Parenthood: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-descr-ttp)
-- Analytic results on study one - Early Dating: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-results-yw)
-- Analytic results on study two - Transition to Parenthood: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-results-ttp)
+- Exploratory data analyses on study one - Early Dating: [RPubs](https://rpubs.com/nguyenllpsych/longassort-descr-01)
+- Exploratory data analyses on study two - Transition to Parenthood: [RPubs](https://rpubs.com/nguyenllpsych/longassort-descr-02)
+- Analytic results on study one - Early Dating: [RPubs](https://rpubs.com/nguyenllpsych/longassort-results-01)
+- Analytic results on study two - Transition to Parenthood: [RPubs](https://rpubs.com/nguyenllpsych/longassort-results-02) or [Alternative link](https://rpubs.com/nguyenllpsych/longassort-results-ttp)

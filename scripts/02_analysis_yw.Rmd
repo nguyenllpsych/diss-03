@@ -40,9 +40,9 @@ options(digits = 3)
 
 This is the analytic report for the Early Dating dataset.
 
-- Online access: This analytic report is published on [RPubs](https://rpubs.com/nguyenllpsych/diss-03-results-yw).
+- Online access: This analytic report is published on [RPubs](https://rpubs.com/nguyenllpsych/longassort-results-01).
 - Preregistration document: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-prereg).
-- Descriptives and exploratory data analysis on the Early Dating analytic dataset: [RPubs](https://rpubs.com/nguyenllpsych/diss-03-descr-yw).
+- Descriptives and exploratory data analysis on the Early Dating analytic dataset: [RPubs](https://rpubs.com/nguyenllpsych/longassort-descr-01).
 
 
 ```{r dat}
@@ -183,11 +183,38 @@ data_yw <- merge(data_yw,
                  all = T)
 ```
 
+## H4. Perceived/actual similarity comparison 
+
+#### At baseline, perceived similarity in personality traits and characteristic adaptations is stronger than actual similarity. That is, the correlation between each partner’s self-perception and perception of their partner is stronger than the correlation between two partners’ self-perceptions.
+
+```{r H4}
+perception_list <- c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness")
+
+# run function
+h4_results <- h4_function(perception_list = perception_list,
+                          time = 0, df = data_yw)
+
+h4_results$similarity_df %>%
+  knitr::kable(
+    caption = "Actual and perceived similarities as bivariate correlations") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+
+h4_results$compare_df %>%
+  knitr::kable(
+    caption = "Comparison between actual and perceived similarities") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```
+
+
 # Research Question 2. Benefit of Assortative Mating
 
-## Dyadic Response Surface Analysis - Baseline
+## H5. Baseline benefit
 
-```{r drsa}
+#### At baseline, partner similarity in self-reported personality is associated with enhanced relationship quality.
+
+```{r h5}
 var_list <- c(
   # traits
   paste0(
@@ -217,9 +244,11 @@ drsa_results$results_df %>%
   scroll_box(height = "300px")
 ```
 
-## Dyadic Response Surface Analysis - Longitudinal
+## H6. Longitudinal benefit
 
-```{r drsa-long}
+#### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with higher average relationship quality
+
+```{r h6}
 # create dataframe of average relationship quality across time
 data_yw_drsalong <- data_yw %>%
   group_by(couple) %>%
@@ -259,348 +288,3 @@ drsa_long_results$results_df %>%
   kableExtra::kable_styling() %>%
   scroll_box(height = "300px")
 ```
-
-
-## H4. Baseline benefit
-
-#### At baseline, partner similarity in self-reported personality is associated with enhanced relationship quality.
-
-```{r H4}
-var_list <- c(
-  # traits
-  paste0(
-    c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness"),
-    "_self"),
-  # CA
-  "avoidance", "anxiety", "resp", "trust"
-)
-
-prof_list <- c("bigfive")
-
-quality_list <- "prqc_overall"
-
-# run function
-h4_results <- h4_function(var_list = var_list, 
-                          quality_list = quality_list, 
-                          prof_list = prof_list,
-                          time = 0,
-                          df = data_yw)
-
-h4_results$interaction_tab %>% 
-  arrange(int_pval) %>%
-  knitr::kable(
-    caption = "Multiple regression results with interaction terms predicting relationship quality"
-  ) %>% 
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-h4_results$difference_tab %>% 
-  arrange(diff_pval) %>%
-  knitr::kable(
-    caption = "Simple regression results with difference scores predicting relationship quality"
-  ) %>% 
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-h4_results$profile_tab %>% 
-  knitr::kable(
-    caption = "Simple regression results with profile correlations predicting relationship quality"
-  ) %>% 
-  kableExtra::kable_styling()
-```
-
-#### Simple slope analysis for significant interaction effects
-
-```{r H4-ss}
-# agreeableness - male quality
-nice_slopes(
-  data = data_yw[data_yw$time == 0,],
-  response = "prqc_overall_2",
-  predictor = "agreeableness_self_2",
-  moderator = "agreeableness_self_1") %>%
-  knitr::kable(
-    caption = "Simple slope analysis"
-  ) %>% 
-  kableExtra::kable_styling()
-```
-
-
-## H5. Baseline benefit with longitudinal predictors
-
-#### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with enhanced relationship quality at baseline.
-
-```{r H5}
-var_list <- c(
-  # traits
-  paste0(
-    c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness"),
-    "_self"),
-  # CA
-  "avoidance", "anxiety", "resp", "trust"
-)
-
-quality_list <- "prqc_overall"
-
-# run function
-h5_results <- h5_function(var_list = var_list, 
-                          quality_list = quality_list, 
-                          time = 0,
-                          df = data_yw) 
-h5_results$interaction_tab %>% 
-  arrange(int_pval) %>%
-  knitr::kable(
-    caption = "Longitudinal predictors: Multiple regression results with interaction terms of predicting relationship quality"
-  ) %>% 
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-h5_results$difference_tab %>% 
-  arrange(diff_pval) %>%
-  knitr::kable(
-    caption = "Longitudinal predictors: Simple regression results with difference-slope scores predicting relationship quality"
-  ) %>% 
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-```
-
-#### Simple slope analysis for significant interaction effects
-
-```{r H5-ss}
-# responsiveness - female quality
-nice_slopes(
-  data = data_yw[data_yw$time == 0,],
-  response = "prqc_overall_1",
-  predictor = "slope_resp_1",
-  moderator = "slope_resp_2") %>%
-  knitr::kable(
-    caption = "Simple slope analysis"
-  ) %>% 
-  kableExtra::kable_styling()
-
-# neuroticism - male quality
-nice_slopes(
-  data = data_yw[data_yw$time == 0,],
-  response = "prqc_overall_2",
-  predictor = "slope_neuroticism_self_2",
-  moderator = "slope_neuroticism_self_1") %>%
-  knitr::kable(
-    caption = "Simple slope analysis"
-  ) %>% 
-  kableExtra::kable_styling()
-
-# avoidance - male quality
-nice_slopes(
-  data = data_yw[data_yw$time == 0,],
-  response = "prqc_overall_2",
-  predictor = "slope_avoidance_2",
-  moderator = "slope_avoidance_1") %>%
-  knitr::kable(
-    caption = "Simple slope analysis"
-  ) %>% 
-  kableExtra::kable_styling()
-
-```
-
-## H6. Longitudinal benefit
-
-#### Longitudinally, partner similarity in change trajectories of self-reported personality is associated with an increase in relationship quality
-
-```{r H6}
-var_list <- c(
-  # traits
-  paste0(
-    c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness"),
-    "_self"),
-  # CA
-  "avoidance", "anxiety", "resp", "trust"
-)
-
-quality_list <- "prqc_overall"
-
-# run function
-h6_results <- h6_function(var_list = var_list, 
-                          quality_list = quality_list, 
-                          baseline = 0,
-                          df = data_yw_full) 
-h6_results$interaction_tab %>% 
-  arrange(int_pval) %>%
-  knitr::kable(
-    caption = "Longitudinal predictors: Multiple regression results with interaction terms predicting longitudinal relationship quality"
-  ) %>% kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-h6_results$difference_tab %>% 
-  arrange(diff_pval) %>%
-  knitr::kable(
-    caption = "Longitudinal predictors: Simple regression results with difference scores predicting longitudinal relationship quality"
-  ) %>% kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-```
-
-#### Simple slope analysis for significant interaction effects
-
-```{r H6-ss}
-# neuroticism - male quality
-nice_slopes(
-  data = data_yw[data_yw$time == 0,],
-  response = "slope_prqc_overall_2",
-  predictor = "slope_neuroticism_self_2",
-  moderator = "slope_neuroticism_self_1") %>%
-  knitr::kable(
-    caption = "Simple slope analysis"
-  ) %>% 
-  kableExtra::kable_styling()
-
-# anxiety - female quality
-nice_slopes(
-  data = data_yw[data_yw$time == 0,],
-  response = "slope_prqc_overall_1",
-  predictor = "slope_anxiety_1",
-  moderator = "slope_anxiety_2") %>%
-  knitr::kable(
-    caption = "Simple slope analysis"
-  ) %>% 
-  kableExtra::kable_styling()
-```
-
-## H7. Cross-lagged effects
-
-#### Longitudinally, there may be cross-lagged effects such that partner similarity in personality at each time point is associated with relationship quality at a subsequent time point, and vice versa. This is an exploratory analysis with no hypothesized direction.
-
-![Figure 1. General structure for the random-intercept cross-lagged panel model](Figure_1.jpg)
-
-Many of these models either did not converge or had estimation warnings.
-
-```{r H7, eval = F}
-#TODO: many did not converge or had estimation warnings
-# create a cross-lagged dataset from timepoints 1->3 instead of 0->16
-data_riclpm <- data_yw %>%
-  mutate(time = case_when(
-    time == 0 ~ 1,
-    time == 8 ~ 2,
-    time == 16 ~ 3)
-)
-var_list <- c(
-  # traits
-  paste0(
-    c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness"),
-    "_self"),
-  # CA
-  "avoidance", "anxiety", "resp", "trust"
-)
-
-prof_list <- c("bigfive")
-
-quality_list <- "prqc_overall"
-# run function 
-h7_results <- h7_function(var_list = var_list, prof_list = prof_list,
-                          quality_list = quality_list, df = data_riclpm)
-h7_results$fit_df %>%
-  knitr::kable(
-    caption = "Fit statistics for models of univariate personality difference") %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-
-h7_results$est_df %>%
-  knitr::kable(
-    caption = "Standardized solutions for models of univariate personality difference") %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-
-h7_results$fitprof_df %>%
-  knitr::kable(
-    caption = "Fit statistics for models of personality profile correlation") %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-
-h7_results$estprof_df %>%
-  knitr::kable(
-    caption = "Standardized solutions for models of personality profile correlation") %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-```
-
-
-# Research Question 3. Actor/Partner/Perceived/Similarity
-
-## H8. Actor/partner effect on quality
-
-#### At baseline, self-reported characteristic adaptations are most strongly associated with self-reported relationship quality, more so than the effect of partner-reported and similarity on these variables.
-
-![Figure 2. General structure for the actor-partner interdependence model at baseline - Actual similarity](Figure_2.jpg)
-
-```{r H8}
-var_list <- c(
-  # traits
-  paste0(
-    c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness"),
-    "_self"),
-  # CA
-  "avoidance", "anxiety", "resp", "trust"
-)
-
-quality_list <- "prqc_overall"
-
-# run function
-h8_results <- h8_function(var_list = var_list,
-                          quality_list = quality_list,
-                          time = 0, df = data_yw)
-h8_results %>%
-  knitr::kable(
-    caption = "Standardized solutions for APIM models with actual similarity"
-  ) %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-```
-
-
-## H9. Perceived/actual similarity comparison 
-
-#### At baseline, perceived similarity in personality traits and characteristic adaptations is stronger than actual similarity. That is, the correlation between each partner’s self-perception and perception of their partner is stronger than the correlation between two partners’ self-perceptions.
-
-```{r H9}
-perception_list <- c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness")
-
-# run function
-h9_results <- h9_function(perception_list = perception_list,
-                          time = 0, df = data_yw)
-
-h9_results$similarity_df %>%
-  knitr::kable(
-    caption = "Actual and perceived similarities as bivariate correlations") %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-
-h9_results$compare_df %>%
-  knitr::kable(
-    caption = "Comparison between actual and perceived similarities") %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-```
-
-## H10. Perceived/actual similarity effects
-
-#### At baseline, each partner’s perceived similarity is more strongly associated with self-reported relationship quality than actual similarity is.
-
-![Figure 3. General structure for the actor-partner interdependence model at baseline - Perceived similarity](Figure_3.jpg)
-
-```{r H10}
-perception_list <- c("neuroticism", "agreeableness", "conscientiousness", "extraversion", "openness")
-
-quality_list <- "prqc_overall"
-
-# run function
-h10_results <- h10_function(perception_list = perception_list,
-                            quality_list = quality_list,
-                            timepoint = 0, df = data_yw)
-
-h10_results$est_df_p1 %>%
-  knitr::kable(
-    caption = "Standardized solutions for APIM models with female-perceived similarity"
-  ) %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-h10_results$est_df_p2 %>%
-  knitr::kable(
-    caption = "Standardized solutions for APIM models with male-perceived similarity"
-  ) %>%
-  kableExtra::kable_styling() %>%
-  scroll_box(height = "300px")
-```
-

@@ -38,50 +38,40 @@ p_extract <- function(path_name, sheet_name, p_names) {
 path_one <- paste0(here(), "/data/Tables-S1.xlsx")
 path_two <- paste0(here(), "/data/Tables-S2.xlsx")
 
-# hypothesis one and three - table 3 and 4
+# similarity: tables 3 and 4
 s1_simcor <- p_extract(path_name = path_one, sheet_name = "s1_simcor", 
                        p_names = c("...6", "...15"))
 s2_simcor <- p_extract(path_name = path_two, sheet_name = "s2_simcor",
                        p_names = c("...6", "...15"))
 
-# hypothesis two - table s1 and s2
-s1_cordiff <- round(p_extract(path_name = path_one, sheet_name = "s1_cor-diff", p_names = "p"),
+# perceived similarity: tables 5 and 6
+# removing actual similarities because they're in simcor
+s1_actual_perceived <- p_extract(path_name = path_one, 
+                                 sheet_name = "s1_actual-perceived", 
+                                 p_names = c("p"))
+indices_to_remove <- seq(1, length(s1_actual_perceived), by = 3)
+s1_actual_perceived <- s1_actual_perceived[-indices_to_remove]
+
+s2_actual_perceived <- p_extract(path_name = path_two, sheet_name = 
+                                   "s2_actual-perceived", 
+                                 p_names = c("p"))
+indices_to_remove <- seq(1, length(s2_actual_perceived), by = 3)
+s2_actual_perceived <- s2_actual_perceived[-indices_to_remove]
+
+# compare similarity: tables s1 and s2
+s1_cordiff <- round(p_extract(path_name = path_one, sheet_name = "s1_cor-diff", 
+                              p_names = "p"),
                     3)
-s2_cordiff <- round(p_extract(path_name = path_two, sheet_name = "s2_cor-diff", p_names = "p"),
+s2_cordiff <- round(p_extract(path_name = path_two, sheet_name = "s2_cor-diff", 
+                              p_names = "p"),
                     3)
-
-# hypothesis four - table s3 and s4
-s1_benefits_baseline <- p_extract(path_name = path_one, 
-                                  sheet_name = "s1_benefits_baseline", 
-                                  p_names = c("...5", "...8", "...12", "...15"))
-s2_benefits_baseline <- p_extract(path_name = path_two, 
-                                  sheet_name = "s2_benefits_baseline", 
-                                  p_names = c("...5", "...8", "...12", "...15",
-                                              "...19", "...22", "...26", "...29"))
-
-# hypothesis five - table s5 and s6
-s1_benefits_baseline_long <- p_extract(path_name = path_one, 
-                                       sheet_name = "s1_benefits_baseline-long",
-                                       p_names = c("...5", "...8", "...12", "...15"))
-s2_benefits_baseline_long <- p_extract(path_name = path_two, 
-                                       sheet_name = "s2_benefits_baseline-long",
-                                       p_names = c("...5", "...8", "...12", "...15",
-                                                   "...19", "...22", "...26", "...29"))
-
-# hypothesis six - table s7 and s8
-s1_benefits_long_long <- p_extract(path_name = path_one, sheet_name = "s1_benefits_long-long",
-                                   p_names = c("...5", "...8", "...12", "...15"))
-s2_benefits_long_long <- p_extract(path_name = path_two, sheet_name = "s2_benefits_long-long",
-                                   p_names = c("...5", "...8", "...12", "...15",
-                                               "...19", "...22", "...26", "...29"))
 
 # combine all p_val with corresponding name
 p_vals <- matrix(ncol = 2)
 colnames(p_vals) <- c("H", "p")
 
 for(result in paste0(c("s1_", "s2_"), 
-                     rep(c("simcor", "cordiff", "benefits_baseline", 
-                           "benefits_baseline_long", "benefits_long_long"), 
+                     rep(c("simcor", "actual_perceived", "cordiff"), 
                          each = 2))) {
   
   # name of current hypothesis
