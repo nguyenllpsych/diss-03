@@ -1322,3 +1322,47 @@ if(signifc("Acohes", data = data)) {
 }
 p
 ```
+
+## Test-retest reliabilities
+
+```{r ICC}
+# create list of all variables
+base_vars <- c(
+  # CA
+  "ecr_avoid", "ecr_anx", 
+  "ss_self", "sp_self",
+  "ks_prox_self", "ks_sens_self",
+  "ks_coop_self", "ks_comp_self",
+  "con_collab_self", "con_capit_self",
+  "con_stale_self",  "con_verba_self",
+  
+  # quality
+  "das_satis", "das_coh"
+)
+
+var_list <- rep(
+  paste0(rep(base_vars, each = 2), c("_1", "_2")), 
+  each = 1
+)
+
+# calculate ICC for all longitudinal variables
+ICC_df <- data.frame(matrix(ncol=9,nrow=0))
+names(ICC_df) <- c("variable", "type", "ICC", "F", "df1", "df2", 
+                   "p", "lower bound", "upper bound")
+for(var in var_list){
+  # find ICC
+  result <- icc_function(ID = "couple", var = var, time_var = "time",
+                         df = data_wide) %>% as.data.frame()
+  result <- cbind(variable = var, result)
+
+  # append to df
+  ICC_df <- rbind(ICC_df, result)
+}
+rownames(ICC_df) <- NULL
+
+# print
+ICC_df %>%
+  knitr::kable(caption = "Test-retest reliabilities") %>%
+  kableExtra::kable_styling() %>%
+  scroll_box(height = "300px")
+```

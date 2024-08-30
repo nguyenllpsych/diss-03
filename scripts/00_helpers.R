@@ -834,11 +834,18 @@ miss_analysis <- function(ID, var, var_demo, var_rela, data, baseline = 0){
 } # END miss_analysis
 
 # function for test-retest reliability
-icc_function <- function(ID, var, time_var, time_vector, df){
-  # create wide dataframe with n_col = length(time_vector)
-  #                            n_row = length(unique(ID))
+icc_function <- function(ID, var, time_var, df){
   
-  #TODO: continue here
+  # select only variables of interest
+  dat <- df %>%
+    select(all_of(c(ID, var, time_var)))
   
-  return(ICC(df[, c()]))
-}
+  # pivot_wider
+  dat <- dat %>%
+    pivot_wider(names_from = time_var, values_from = var) %>%
+    select(-all_of(c(ID)))
+  
+  # calculate ICC
+  ICC_result = psych::ICC(x = dat, lmer = T)
+  return(ICC_result$results %>% filter(type == "ICC1k"))
+} # END ICC_function
