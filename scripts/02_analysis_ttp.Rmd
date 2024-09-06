@@ -79,6 +79,22 @@ miss_analysis(ID = "couple", var = c("ecr_avoid_1", "ecr_avoid_2"),
 ```
 
 
+# Supplemental Analysis - Relationship Duration
+
+These analyses examined whether relationship duration is associated with relationship quality
+
+```{r rela-duration}
+cor.test(data_ttp[data_ttp$time==0,]$das_satis_1, 
+         data_ttp[data_ttp$time==0,]$P1Amtotalmo_1)
+cor.test(data_ttp[data_ttp$time==0,]$das_satis_2, 
+         data_ttp[data_ttp$time==0,]$P1Amtotalmo_2)
+cor.test(data_ttp[data_ttp$time==0,]$das_coh_1, 
+         data_ttp[data_ttp$time==0,]$P1Amtotalmo_1)
+cor.test(data_ttp[data_ttp$time==0,]$das_coh_2, 
+         data_ttp[data_ttp$time==0,]$P1Amtotalmo_2)
+```
+
+
 # Research Question 1. Evidence of Assortative Mating
 
 ## H1. Baseline similarity

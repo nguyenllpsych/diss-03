@@ -107,7 +107,7 @@ dict <- dict %>%
 # for relationship length: only use P1Amtotalmo and P1Altotalmo
 data %>%
   filter(time == 0) %>%
-  select(P1Ammonths, P1Amtotalmo) %>%
+  select(P1Amtotalmo, P1Altotalmo) %>%
   summary()
 
 # add a unique variable per participant = ID + Sex (0)

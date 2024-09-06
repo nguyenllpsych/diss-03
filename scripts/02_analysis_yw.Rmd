@@ -1,13 +1,13 @@
 ---
-title: "Longitudinal Assortative Mating Results: Early Dating"
+title: 'Longitudinal Assortative Mating Results: Early Dating'
 author: "Linh Nguyen"
 date: "`r Sys.Date()`"
-output: 
+output:
   html_document:
-    toc: true
+    toc: yes
     toc_depth: 3
-    toc_float: false
-    code_folding: 'hide'
+    toc_float: no
+    code_folding: hide
     css: styles.css
 ---
 
@@ -81,6 +81,18 @@ miss_analysis(ID = "couple", var = c("agreeableness_self_1", "agreeableness_self
                        rep(c(1,2), times = 5)),
               data = data_yw)
 ```
+
+# Supplemental Analysis - Relationship Duration
+
+These analyses examined whether relationship duration is associated with relationship quality
+
+```{r rela-duration}
+cor.test(data_yw[data_yw$time==0,]$prqc_overall_1, 
+         data_yw[data_yw$time==0,]$duration_1)
+cor.test(data_yw[data_yw$time==0,]$prqc_overall_2,
+         data_yw[data_yw$time==0,]$duration_2)
+```
+
 
 # Research Question 1. Evidence of Assortative Mating
 
